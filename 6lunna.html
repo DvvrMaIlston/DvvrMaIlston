@@ -627,6 +627,12 @@
                         symbol.style.boxShadow = '0 0 15px rgba(51, 255, 153, 0.7)';
                     }, 100);
                 });
+                
+                // Перенаправление на другую страницу через 2 секунды
+                setTimeout(() => {
+                    window.location.href = './7bossmaxi.html';
+                }, 2000);
+                
             } else {
                 document.getElementById('successMessage').style.display = 'none';
                 document.getElementById('errorMessage').style.display = 'block';
