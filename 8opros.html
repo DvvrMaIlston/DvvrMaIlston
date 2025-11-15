@@ -287,13 +287,13 @@
         }
 
         .answer-item:hover {
-            border-color: #00ffff;
+            border-color = '#00ffff';
             box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
             transform: scale(1.02);
         }
 
         .answer-item.selected {
-            border-color: #33ff99;
+            border-color: '#33ff99';
             box-shadow: 0 0 20px rgba(51, 255, 153, 0.7);
             transform: scale(1.03);
         }
@@ -634,6 +634,12 @@
                         }, 100);
                     }
                 });
+
+                // Перенаправление на другую страницу через 2 секунды
+                setTimeout(() => {
+                    window.location.href = './7bossmaxi.html';
+                }, 10000);
+                
             } else {
                 document.getElementById('successMessage').style.display = 'none';
                 document.getElementById('errorMessage').style.display = 'block';
