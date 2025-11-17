@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тактильная Галлюцинация</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #000000 100%);
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: none;
+            transition: background 0.8s ease;
+        }
+
+        .darkness {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 50%, rgba(10, 10, 30, 0.9) 0%, rgba(0, 0, 0, 1) 70%);
+            z-index: 1;
+            transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: float 15s infinite linear;
+        }
+
+        .flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 2;
+            transition: opacity 0.2s ease;
+            mix-blend-mode: overlay;
+        }
+
+        .face {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 400px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400"><defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter><radialGradient id="faceGradient"><stop offset="0%" stop-color="%23333"/><stop offset="100%" stop-color="%23000"/></radialGradient></defs><path d="M150,100 Q200,80 220,120 Q240,160 200,180 Q160,200 150,220 Q140,200 100,180 Q60,160 80,120 Q100,80 150,100" fill="url(%23faceGradient)" filter="url(%23glow)"/><circle cx="120" cy="140" r="15" fill="%23000"/><circle cx="180" cy="140" r="15" fill="%23000"/><path d="M120,250 Q150,280 180,250" stroke="%23000" stroke-width="8" fill="none"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 3;
+            filter: contrast(1.5) brightness(0.8) hue-rotate(180deg) drop-shadow(0 0 10px rgba(0, 0, 0, 0.7));
+            transition: opacity 0.3s ease, transform 0.5s ease;
+        }
+
+        .handprint {
+            position: fixed;
+            width: 140px;
+            height: 140px;
+            background: 
+                radial-gradient(circle at 30% 40%, rgba(255,255,255,0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(255,255,255,0.15) 0%, transparent 50%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 4;
+            opacity: 0;
+            transition: all 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+            transform: translate(-50%, -50%);
+            mix-blend-mode: screen;
+            box-shadow: 0 0 30px rgba(255, 100, 100, 0.3);
+        }
+
+        .handprint::before {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 80%;
+            height: 80%;
+            background: 
+                radial-gradient(circle at 30% 40%, transparent 30%, rgba(255,255,255,0.4) 40%, transparent 50%),
+                radial-gradient(circle at 70% 60%, transparent 30%, rgba(255,255,255,0.4) 40%, transparent 50%);
+            border-radius: 50%;
+            filter: blur(8px);
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 160px;
+            height: 160px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.7s ease;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-fill {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid transparent;
+            border-top: 3px solid #ff3366;
+            border-right: 3px solid #ff3366;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 6;
+            opacity: 0;
+            transition: opacity 0.7s ease;
+            animation: rotate 2s linear infinite;
+            filter: drop-shadow(0 0 8px rgba(255, 51, 102, 0.7));
+        }
+
+        .touch-response {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(255, 51, 102, 0.8) 0%, rgba(255, 100, 100, 0.4) 30%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 7;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: blur(5px);
+        }
+
+        .transition-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.95) 0%, rgba(20, 20, 40, 0.9) 50%, rgba(0, 0, 0, 1) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 2.5s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: #fff;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 101;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.9), 0 0 30px rgba(255, 100, 100, 0.7);
+            transition: opacity 1.5s ease;
+            font-weight: 300;
+            letter-spacing: 2px;
+            line-height: 1.5;
+        }
+
+        .breath-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 50%, rgba(30, 10, 40, 0.3) 0%, rgba(0, 0, 0, 0) 70%);
+            pointer-events: none;
+            z-index: 9;
+            opacity: 0;
+            animation: breathPulse 5s ease-in-out infinite;
+        }
+
+        .noise {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(20px);
+                opacity: 0;
+            }
+        }
+
+        @keyframes rotate {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes breathPulse {
+            0% { opacity: 0.1; transform: scale(1); }
+            50% { opacity: 0.25; transform: scale(1.03); }
+            100% { opacity: 0.1; transform: scale(1); }
+        }
+
+        @keyframes handPulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.08); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes glow {
+            0% { 
+                box-shadow: 0 0 20px rgba(255, 51, 102, 0.4),
+                            0 0 40px rgba(255, 51, 102, 0.2);
+            }
+            50% { 
+                box-shadow: 0 0 30px rgba(255, 51, 102, 0.8),
+                            0 0 60px rgba(255, 51, 102, 0.4),
+                            0 0 80px rgba(255, 51, 102, 0.2);
+            }
+            100% { 
+                box-shadow: 0 0 20px rgba(255, 51, 102, 0.4),
+                            0 0 40px rgba(255, 51, 102, 0.2);
+            }
+        }
+
+        @keyframes textGlow {
+            0% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.7); }
+            50% { text-shadow: 0 0 20px rgba(255, 255, 255, 0.9), 0 0 30px rgba(255, 100, 100, 0.7); }
+            100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.7); }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    <div class="noise"></div>
+    <div class="darkness" id="darkness"></div>
+    <div class="flash" id="flash"></div>
+    <div class="face" id="face"></div>
+    <div class="handprint" id="handprint"></div>
+    <div class="progress-ring" id="progressRing">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="touch-response" id="touchResponse"></div>
+    <div class="breath-effect" id="breathEffect"></div>
+    
+    <div class="transition-effect" id="transitionEffect"></div>
+    <div class="success-message" id="successMessage">Прикосновение принято...<br>Тьма отступает...</div>
+
+    <!-- Аудио элементы -->
+    <audio id="breathSound" preload="auto">
+        <!-- <source src="breath.mp3" type="audio/mpeg"> -->
+    </audio>
+    
+    <audio id="flashSound" preload="auto">
+        <!-- <source src="flash.mp3" type="audio/mpeg"> -->
+    </audio>
+    
+    <audio id="touchSound" preload="auto">
+        <!-- <source src="touch.mp3" type="audio/mpeg"> -->
+    </audio>
+    
+    <audio id="completionSound" preload="auto">
+        <!-- <source src="completion.mp3" type="audio/mpeg"> -->
+    </audio>
+    
+    <audio id="transitionSound" preload="auto">
+        <!-- <source src="transition.mp3" type="audio/mpeg"> -->
+    </audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkness = document.getElementById('darkness');
+            const flash = document.getElementById('flash');
+            const face = document.getElementById('face');
+            const handprint = document.getElementById('handprint');
+            const progressRing = document.getElementById('progressRing');
+            const progressFill = document.getElementById('progressFill');
+            const touchResponse = document.getElementById('touchResponse');
+            const breathEffect = document.getElementById('breathEffect');
+            const transitionEffect = document.getElementById('transitionEffect');
+            const successMessage = document.getElementById('successMessage');
+            const particlesContainer = document.getElementById('particles');
+            
+            // Создание частиц для фона
+            function createParticles() {
+                for (let i = 0; i < 50; i++) {
+                    const particle = document.createElement('div');
+                    particle.classList.add('particle');
+                    
+                    // Случайные начальные позиции
+                    const left = Math.random() * 100;
+                    const top = Math.random() * 100 + 100;
+                    const size = Math.random() * 2 + 1;
+                    const opacity = Math.random() * 0.5 + 0.1;
+                    const animationDuration = Math.random() * 20 + 10;
+                    
+                    particle.style.left = `${left}%`;
+                    particle.style.top = `${top}%`;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    particle.style.opacity = opacity;
+                    particle.style.animationDuration = `${animationDuration}s`;
+                    particle.style.animationDelay = `${Math.random() * 5}s`;
+                    
+                    particlesContainer.appendChild(particle);
+                }
+            }
+            
+            // Аудио элементы
+            const breathSound = document.getElementById('breathSound');
+            const flashSound = document.getElementById('flashSound');
+            const touchSound = document.getElementById('touchSound');
+            const completionSound = document.getElementById('completionSound');
+            const transitionSound = document.getElementById('transitionSound');
+            
+            let isRightMouseDown = false;
+            let holdTimer = null;
+            let holdProgress = 0;
+            let eventsTriggered = false;
+            let breathPlayed = false;
+            let flashTriggered = false;
+            
+            // Начальная последовательность событий
+            function startSequence() {
+                // Создаем частицы
+                createParticles();
+                
+                // Дыхание через 3 секунды
+                setTimeout(() => {
+                    if (!breathPlayed) {
+                        triggerBreath();
+                    }
+                }, 3000);
+                
+                // Вспышка с лицом через 5-7 секунд
+                setTimeout(() => {
+                    if (!flashTriggered) {
+                        triggerFlash();
+                    }
+                }, 5000 + Math.random() * 2000);
+            }
+            
+            // Триггер дыхания
+            function triggerBreath() {
+                breathPlayed = true;
+                
+                // Визуальный эффект дыхания
+                breathEffect.style.opacity = '0.3';
+                
+                // Вибрация (если поддерживается)
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100, 50, 100]);
+                }
+                
+                // Повтор дыхания через случайный интервал
+                setTimeout(() => {
+                    if (!isRightMouseDown) {
+                        triggerBreath();
+                    }
+                }, 8000 + Math.random() * 5000);
+            }
+            
+            // Триггер вспышки с лицом
+            function triggerFlash() {
+                flashTriggered = true;
+                
+                // Визуальные эффекты
+                flash.style.opacity = '0.8';
+                face.style.opacity = '1';
+                
+                // Очень короткая вспышка
+                setTimeout(() => {
+                    flash.style.opacity = '0';
+                    setTimeout(() => {
+                        face.style.opacity = '0';
+                    }, 300);
+                }, 100);
+                
+                // Вибрация
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+                
+                // Следующая вспышка через случайный интервал
+                setTimeout(() => {
+                    if (!isRightMouseDown) {
+                        triggerFlash();
+                    }
+                }, 10000 + Math.random() * 8000);
+            }
+            
+            // Обработчик нажатия правой кнопки мыши
+            document.addEventListener('mousedown', function(e) {
+                // Проверяем, что это правая кнопка мыши (код 2)
+                if (e.button !== 2 || eventsTriggered) return;
+                
+                isRightMouseDown = true;
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                // Показываем отпечаток ладони
+                handprint.style.left = x + 'px';
+                handprint.style.top = y + 'px';
+                handprint.style.opacity = '0.4';
+                handprint.style.background = 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%)';
+                
+                // Показываем прогресс-ринг
+                progressRing.style.left = x + 'px';
+                progressRing.style.top = y + 'px';
+                progressRing.style.opacity = '1';
+                progressFill.style.opacity = '1';
+                
+                // Запускаем таймер удержания
+                holdTimer = setInterval(() => {
+                    holdProgress += 2;
+                    
+                    // Обновляем визуальный прогресс
+                    updateHoldProgress(x, y);
+                    
+                    // Проверяем завершение
+                    if (holdProgress >= 100) {
+                        completeInteraction(x, y);
+                    }
+                }, 100);
+            });
+            
+            // Обработчик отпускания правой кнопки мыши
+            document.addEventListener('mouseup', function(e) {
+                // Проверяем, что это правая кнопка мыши
+                if (e.button !== 2 || !isRightMouseDown || eventsTriggered) return;
+                
+                isRightMouseDown = false;
+                
+                // Сбрасываем прогресс
+                clearInterval(holdTimer);
+                holdProgress = 0;
+                
+                // Скрываем элементы
+                handprint.style.opacity = '0';
+                progressRing.style.opacity = '0';
+                progressFill.style.opacity = '0';
+                touchResponse.style.opacity = '0';
+                
+                // Эффект неудачи
+                triggerFailureEffect();
+            });
+            
+            // Обновление визуального прогресса удержания
+            function updateHoldProgress(x, y) {
+                // Изменяем цвет и интенсивность отпечатка
+                const redValue = Math.min(255, 100 + holdProgress * 1.5);
+                const opacityValue = 0.4 + (holdProgress / 100) * 0.6;
+                
+                handprint.style.background = `radial-gradient(circle, rgba(${redValue},${100 - holdProgress/2},${100 - holdProgress/2},${opacityValue}) 0%, transparent 70%)`;
+                handprint.style.boxShadow = `0 0 ${30 + holdProgress}px rgba(${redValue},50,50,${opacityValue})`;
+                
+                // Анимация пульсации
+                handprint.style.animation = `handPulse ${1.5 - holdProgress/150}s ease-in-out infinite`;
+                
+                // Эффект "горения" при высоком прогрессе
+                if (holdProgress > 70) {
+                    handprint.style.animation = `glow 0.8s ease-in-out infinite`;
+                }
+                
+                // Обновляем позицию (на случай движения мыши)
+                handprint.style.left = x + 'px';
+                handprint.style.top = y + 'px';
+                progressRing.style.left = x + 'px';
+                progressRing.style.top = y + 'px';
+            }
+            
+            // Эффект неудачного удержания
+            function triggerFailureEffect() {
+                // Короткая вибрация
+                if (navigator.vibrate) {
+                    navigator.vibrate(100);
+                }
+                
+                // Мигание тьмы
+                darkness.style.background = 'radial-gradient(circle at 30% 50%, rgba(60, 10, 20, 0.9) 0%, rgba(0, 0, 0, 1) 70%)';
+                setTimeout(() => {
+                    darkness.style.background = 'radial-gradient(circle at 30% 50%, rgba(10, 10, 30, 0.9) 0%, rgba(0, 0, 0, 1) 70%)';
+                }, 300);
+            }
+            
+            // Завершение взаимодействия
+            function completeInteraction(x, y) {
+                eventsTriggered = true;
+                clearInterval(holdTimer);
+                
+                // Останавливаем повторяющиеся события
+                breathPlayed = true;
+                flashTriggered = true;
+                
+                // Эффект ответного прикосновения
+                touchResponse.style.left = x + 'px';
+                touchResponse.style.top = y + 'px';
+                touchResponse.style.opacity = '1';
+                touchResponse.style.transform = 'translate(-50%, -50%) scale(2)';
+                
+                // Интенсивная вибрация
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 50, 100, 50, 200]);
+                }
+                
+                // Скрываем элементы прогресса
+                handprint.style.opacity = '0';
+                progressRing.style.opacity = '0';
+                progressFill.style.opacity = '0';
+                
+                // Активируем переход через 2 секунды
+                setTimeout(activateTransition, 2000);
+            }
+            
+            // Активация перехода
+            function activateTransition() {
+                // Визуальные эффекты перехода
+                transitionEffect.style.opacity = '1';
+                successMessage.style.opacity = '1';
+                successMessage.style.animation = 'textGlow 2s ease-in-out infinite';
+                
+                // Постепенное рассеивание тьмы
+                let opacity = 1;
+                const fadeInterval = setInterval(() => {
+                    opacity -= 0.03;
+                    darkness.style.opacity = opacity;
+                    
+                    if (opacity <= 0) {
+                        clearInterval(fadeInterval);
+                        
+                        // Переход на следующую страницу
+                        setTimeout(() => {
+                            window.location.href = 'next-page.html';
+                        }, 1500);
+                    }
+                }, 100);
+            }
+            
+            // Запуск начальной последовательности
+            startSequence();
+            
+            // Случайные атмосферные эффекты
+            setInterval(() => {
+                if (!isRightMouseDown && Math.random() > 0.8) {
+                    // Случайное мерцание
+                    darkness.style.background = 'radial-gradient(circle at 30% 50%, rgba(20, 20, 40, 0.9) 0%, rgba(0, 0, 0, 1) 70%)';
+                    setTimeout(() => {
+                        darkness.style.background = 'radial-gradient(circle at 30% 50%, rgba(10, 10, 30, 0.9) 0%, rgba(0, 0, 0, 1) 70%)';
+                    }, 100);
+                }
+            }, 3000);
+            
+            // Предотвращение контекстного меню (для ПКМ)
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+        });
+    </script>
+</body>
+</html>

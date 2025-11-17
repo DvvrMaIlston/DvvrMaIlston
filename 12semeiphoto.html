@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Старая Фотография</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
+            color: #e0e0e0;
+            font-family: 'Georgia', serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: none;
+        }
+        
+        .container {
+            text-align: center;
+            z-index: 10;
+            max-width: 800px;
+            padding: 20px;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            color: #8b0000;
+            text-shadow: 0 0 15px rgba(139, 0, 0, 0.5);
+            font-weight: normal;
+            letter-spacing: 3px;
+            animation: titleFlicker 8s infinite;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: #666;
+            font-style: italic;
+            animation: subtitleFlicker 12s infinite;
+        }
+        
+        .photo-container {
+            position: relative;
+            width: 500px;
+            height: 400px;
+            margin: 0 auto 2rem;
+            border: 12px solid #1a1a1a;
+            border-radius: 3px;
+            box-shadow: 
+                0 0 50px rgba(139, 0, 0, 0.3),
+                inset 0 0 50px rgba(0, 0, 0, 0.8);
+            background: #000;
+            overflow: hidden;
+            transition: all 0.8s ease;
+            transform-style: preserve-3d;
+        }
+        
+        .photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 3s ease;
+            filter: sepia(0.4) contrast(1.2) brightness(0.9);
+            animation: photoBreathing 8s ease-in-out infinite;
+        }
+        
+        .photo-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(45deg, transparent 40%, rgba(139, 0, 0, 0.1) 50%, transparent 60%),
+                radial-gradient(circle at 20% 30%, rgba(139, 0, 0, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(139, 0, 0, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.4;
+        }
+        
+        .ghost-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 4s ease;
+            pointer-events: none;
+            z-index: 6;
+            mix-blend-mode: screen;
+            filter: contrast(1.3) brightness(0.8) hue-rotate(180deg);
+        }
+        
+        .timer {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #8b0000;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            text-shadow: 0 0 5px rgba(139, 0, 0, 0.5);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .idle-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #8b0000;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 2s ease;
+            text-shadow: 0 0 5px rgba(139, 0, 0, 0.3);
+        }
+        
+        .transition-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle, rgba(139, 0, 0, 0.9) 0%, rgba(0, 0, 0, 1) 100%),
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100" height="100" filter="url(%23noise)" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 3s ease;
+        }
+        
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            color: #ff0000;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 101;
+            text-shadow: 
+                0 0 20px #ff0000,
+                0 0 40px #ff0000,
+                0 0 60px #ff0000;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 5px;
+            animation: messageGlitch 0.3s infinite;
+        }
+        
+        .click-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: none;
+            z-index: 20;
+        }
+        
+        .dust-particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: radial-gradient(circle, rgba(139, 0, 0, 0.6) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 7;
+            animation: floatDust 15s linear infinite;
+        }
+        
+        .flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        /* Кровавые следы */
+        .blood-trail {
+            position: absolute;
+            pointer-events: none;
+            z-index: 15;
+            background: linear-gradient(90deg, #8b0000, #ff0000, #8b0000);
+            border-radius: 2px;
+            opacity: 0.9;
+            transition: opacity 4s ease;
+        }
+        
+        .blood-drop {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle, #ff0000 0%, #8b0000 60%, transparent 100%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 16;
+            animation: bloodDrip 3s ease-out forwards;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+        }
+        
+        .blood-splash {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: radial-gradient(circle, transparent 30%, rgba(139, 0, 0, 0.8) 50%, transparent 70%);
+            pointer-events: none;
+            z-index: 17;
+            animation: bloodSplash 2s ease-out forwards;
+        }
+        
+        .blood-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #ff0000 0%, #8b0000 50%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            mix-blend-mode: multiply;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.7));
+            animation: cursorPulse 2s infinite;
+        }
+        
+        .static-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 0, 0, 0.03) 0px,
+                    rgba(0, 0, 0, 0.03) 1px,
+                    transparent 1px,
+                    transparent 2px
+                ),
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter></defs><rect width="100" height="100" filter="url(%23noiseFilter)" opacity="0.05"/></svg>');
+            pointer-events: none;
+            z-index: 8;
+            opacity: 0.3;
+            animation: staticFlicker 0.2s infinite;
+        }
+        
+        .vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: 
+                inset 0 0 150px rgba(0, 0, 0, 0.9),
+                inset 0 0 100px rgba(139, 0, 0, 0.3);
+            pointer-events: none;
+            z-index: 9;
+        }
+        
+        .whisper-text {
+            position: fixed;
+            color: #8b0000;
+            font-size: 1.3rem;
+            text-shadow: 0 0 15px rgba(139, 0, 0, 0.7);
+            opacity: 0;
+            z-index: 12;
+            pointer-events: none;
+            white-space: nowrap;
+            font-family: 'Georgia', serif;
+            font-style: italic;
+            animation: whisperFloat 8s ease-out forwards;
+        }
+        
+        .shadow-figure {
+            position: fixed;
+            width: 120px;
+            height: 220px;
+            background: radial-gradient(ellipse at center, rgba(139, 0, 0, 0.4) 0%, transparent 70%);
+            opacity: 0;
+            z-index: 4;
+            pointer-events: none;
+            animation: shadowAppear 6s ease-in-out;
+            filter: blur(5px);
+        }
+        
+        /* Анимации */
+        @keyframes titleFlicker {
+            0%, 100% { opacity: 1; text-shadow: 0 0 15px rgba(139, 0, 0, 0.5); }
+            50% { opacity: 0.7; text-shadow: 0 0 5px rgba(139, 0, 0, 0.3); }
+            75% { opacity: 0.9; text-shadow: 0 0 20px rgba(139, 0, 0, 0.7); }
+        }
+        
+        @keyframes subtitleFlicker {
+            0%, 100% { opacity: 1; }
+            30% { opacity: 0.4; }
+            60% { opacity: 0.8; }
+        }
+        
+        @keyframes photoBreathing {
+            0%, 100% { transform: scale(1) rotate(0deg); filter: sepia(0.4) contrast(1.2) brightness(0.9); }
+            50% { transform: scale(1.02) rotate(0.2deg); filter: sepia(0.5) contrast(1.3) brightness(0.85); }
+        }
+        
+        @keyframes instructionPulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+        
+        @keyframes floatDust {
+            0% {
+                transform: translateY(100px) translateX(0) rotate(0deg) scale(0.5);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(-100px) translateX(30px) rotate(180deg) scale(1);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes ghostAppear {
+            0% {
+                opacity: 0;
+                transform: scale(1.1) translateX(-10px);
+                filter: hue-rotate(0deg) blur(10px);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.05) translateX(5px);
+                filter: hue-rotate(90deg) blur(5px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateX(0);
+                filter: hue-rotate(180deg) blur(0px);
+            }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0) rotate(0deg); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-3px) rotate(-0.5deg); }
+            20%, 40%, 60%, 80% { transform: translateX(3px) rotate(0.5deg); }
+        }
+        
+        @keyframes bloodDrip {
+            0% {
+                transform: scale(0) translateY(0);
+                opacity: 1;
+            }
+            30% {
+                transform: scale(1.2) translateY(8px);
+                opacity: 0.9;
+            }
+            70% {
+                transform: scale(1) translateY(15px);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(0.8) translateY(25px);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes bloodSplash {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 0.6;
+            }
+            100% {
+                transform: scale(2) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes cursorPulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        
+        @keyframes staticFlicker {
+            0% { opacity: 0.2; transform: translate(0, 0); }
+            100% { opacity: 0.3; transform: translate(2px, 2px); }
+        }
+        
+        @keyframes textFlicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        @keyframes whisperFloat {
+            0% { opacity: 0; transform: translateY(0) scale(0.8) translateX(-50%); }
+            10% { opacity: 1; transform: translateY(-20px) scale(1) translateX(-50%); }
+            90% { opacity: 1; transform: translateY(-80px) scale(1.1) translateX(-50%); }
+            100% { opacity: 0; transform: translateY(-100px) scale(1.2) translateX(-50%); }
+        }
+        
+        @keyframes shadowAppear {
+            0% { transform: translateX(-200px) scale(0.5); opacity: 0; }
+            20% { transform: translateX(0) scale(1); opacity: 0.6; }
+            80% { transform: translateX(100px) scale(1); opacity: 0.6; }
+            100% { transform: translateX(300px) scale(0.5); opacity: 0; }
+        }
+        
+        @keyframes messageGlitch {
+            0% { transform: translate(-50%, -50%) translateX(0); }
+            25% { transform: translate(-50%, -50%) translateX(-2px); }
+            50% { transform: translate(-50%, -50%) translateX(2px); }
+            75% { transform: translate(-50%, -50%) translateX(-1px); }
+            100% { transform: translate(-50%, -50%) translateX(0); }
+        }
+        
+        @keyframes photoDistort {
+            0% { transform: scale(1) skew(0deg); filter: sepia(0.4) contrast(1.2); }
+            50% { transform: scale(1.05) skew(0.5deg); filter: sepia(0.6) contrast(1.4) hue-rotate(10deg); }
+            100% { transform: scale(1) skew(0deg); filter: sepia(0.4) contrast(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <div class="static-overlay"></div>
+    <div class="blood-cursor" id="bloodCursor"></div>
+    
+    <div class="container">
+        <h1>Семейная Фотография, 1897</h1>
+        <p class="subtitle">Они всё ещё здесь... в тенях... в тишине...</p>
+        
+        <div class="photo-container" id="photoContainer">
+            <img src="./sem_foto.jfif" 
+                 alt="Старая семейная фотография" class="photo" id="mainPhoto">
+            <div class="photo-frame"></div>
+            <div class="ghost-overlay" id="ghostOverlay"></div>
+            <div class="vignette"></div>
+            <div class="click-area" id="clickArea"></div>
+        </div>
+    </div>
+    
+    <div class="timer" id="timer">ВРЕМЯ: <span id="time">0</span>С</div>
+    
+    <div class="transition-effect" id="transitionEffect"></div>
+    <div class="success-message" id="successMessage">ОН ВИДИТ ТЕБЯ! БЕГИ!</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const photoContainer = document.getElementById('photoContainer');
+            const mainPhoto = document.getElementById('mainPhoto');
+            const ghostOverlay = document.getElementById('ghostOverlay');
+            const idleIndicator = document.getElementById('idleIndicator');
+            const timerElement = document.getElementById('time');
+            const clickArea = document.getElementById('clickArea');
+            const transitionEffect = document.getElementById('transitionEffect');
+            const successMessage = document.getElementById('successMessage');
+            const bloodCursor = document.getElementById('bloodCursor');
+            
+            // Жуткие фразы для шепотов
+            const whisperPhrases = [
+                "они смотрят...", "не двигайся...", "в тенях...", 
+                "кровь помнит...", "1897... никогда не забыть...",
+                "семья вместе... навсегда...", "шепчут стены...",
+                "фотография жива...", "они ненавидят свет...",
+                "не смотри в глаза...", "беги пока можешь...",
+                "кровь зовет кровь...", "проклятие длится...",
+                "никто не спасся...", "все они мертвы..."
+            ];
+            
+            let time = 0;
+            let timerInterval;
+            let idleTime = 0;
+            let idleCheckInterval;
+            let ghostActive = false;
+            let ghostAppeared = false;
+            let mouseMoveCount = 0;
+            let lastMousePosition = { x: 0, y: 0 };
+            let isMouseDown = false;
+            let lastBloodDropTime = 0;
+            let bloodTrails = [];
+            let horrorLevel = 0;
+            
+            // Установка изображения призрака
+            ghostOverlay.style.backgroundImage = "url('./skrimer.jpg')";
+            
+            // Запуск таймера
+            function startTimer() {
+                timerInterval = setInterval(() => {
+                    time++;
+                    timerElement.textContent = time;
+                    horrorLevel = Math.min(time / 30, 1);
+                    
+                    // Увеличиваем жуткость со временем
+                    if (time % 15 === 0 && !ghostActive) {
+                        createRandomHorrorEffect();
+                    }
+                }, 1000);
+            }
+            
+            // Проверка бездействия
+            function startIdleCheck() {
+                idleCheckInterval = setInterval(() => {
+                    idleTime++;
+                    
+                    if (idleTime === 8) {
+                        idleIndicator.style.opacity = '1';
+                        createWhisper();
+                    }
+                    
+                    if (idleTime >= 12 && !ghostActive && Math.random() > 0.6) {
+                        activateGhost();
+                    }
+                    
+                }, 1000);
+            }
+            
+            // Сброс таймера бездействия
+            function resetIdleTimer() {
+                idleTime = 0;
+                idleIndicator.style.opacity = '0';
+                mouseMoveCount++;
+                
+                if (ghostActive && !ghostAppeared) {
+                    deactivateGhost();
+                }
+            }
+            
+            // Активация призрака
+            function activateGhost() {
+                if (ghostActive) return;
+                
+                ghostActive = true;
+                createFlashEffect();
+                createShakeEffect();
+                
+                // Меняем фото на более жуткое
+                mainPhoto.style.filter = 'sepia(0.6) contrast(1.4) brightness(0.7) hue-rotate(180deg)';
+                
+                setTimeout(() => {
+                    ghostOverlay.style.opacity = '1';
+                    ghostOverlay.style.animation = 'ghostAppear 4s ease-in-out';
+                    
+                    // Создаем тени
+                    createShadowFigure();
+                    
+                    setTimeout(() => {
+                        ghostAppeared = true;
+                        
+                        // Жуткие шепоты
+                        for (let i = 0; i < 3; i++) {
+                            setTimeout(createWhisper, i * 1500);
+                        }
+                        
+                        setTimeout(() => {
+                            if (ghostActive) {
+                                deactivateGhost();
+                            }
+                        }, 7000);
+                        
+                    }, 4000);
+                    
+                }, 1000);
+            }
+            
+            // Деактивация призрака
+            function deactivateGhost() {
+                ghostOverlay.style.opacity = '0';
+                ghostOverlay.style.animation = 'none';
+                ghostActive = false;
+                ghostAppeared = false;
+                mainPhoto.style.filter = 'sepia(0.4) contrast(1.2) brightness(0.9)';
+            }
+            
+            // Создание эффекта вспышки
+            function createFlashEffect() {
+                const flash = document.querySelector('.flash') || document.createElement('div');
+                flash.className = 'flash';
+                document.body.appendChild(flash);
+                
+                flash.style.opacity = '0.4';
+                
+                setTimeout(() => {
+                    flash.style.opacity = '0';
+                    setTimeout(() => {
+                        if (document.body.contains(flash)) {
+                            document.body.removeChild(flash);
+                        }
+                    }, 1000);
+                }, 300);
+            }
+            
+            // Создание кровавого следа
+            function createBloodTrail(x, y) {
+                const currentTime = Date.now();
+                if (currentTime - lastBloodDropTime < 80) return;
+                lastBloodDropTime = currentTime;
+                
+                // Кровавая капля
+                const bloodDrop = document.createElement('div');
+                bloodDrop.className = 'blood-drop';
+                bloodDrop.style.left = (x - 6) + 'px';
+                bloodDrop.style.top = (y - 6) + 'px';
+                photoContainer.appendChild(bloodDrop);
+                
+                // Случайные брызги
+                if (Math.random() > 0.7) {
+                    createBloodSplash(x, y);
+                }
+                
+                // Кровавые линии
+                if (bloodTrails.length > 0) {
+                    const lastTrail = bloodTrails[bloodTrails.length - 1];
+                    createBloodLine(lastTrail.x, lastTrail.y, x, y);
+                }
+                
+                bloodTrails.push({ x, y });
+                
+                if (bloodTrails.length > 40) {
+                    bloodTrails.shift();
+                }
+                
+                setTimeout(() => {
+                    if (photoContainer.contains(bloodDrop)) {
+                        photoContainer.removeChild(bloodDrop);
+                    }
+                }, 3000);
+            }
+            
+            // Создание кровавых брызг
+            function createBloodSplash(x, y) {
+                for (let i = 0; i < 3; i++) {
+                    const splash = document.createElement('div');
+                    splash.className = 'blood-splash';
+                    splash.style.left = (x + Math.random() * 20 - 10) + 'px';
+                    splash.style.top = (y + Math.random() * 20 - 10) + 'px';
+                    splash.style.animationDelay = (Math.random() * 0.5) + 's';
+                    photoContainer.appendChild(splash);
+                    
+                    setTimeout(() => {
+                        if (photoContainer.contains(splash)) {
+                            photoContainer.removeChild(splash);
+                        }
+                    }, 2000);
+                }
+            }
+            
+            // Создание линии между точками
+            function createBloodLine(x1, y1, x2, y2) {
+                const lineLength = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                if (lineLength < 8) return;
+                
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                
+                const bloodLine = document.createElement('div');
+                bloodLine.className = 'blood-trail';
+                bloodLine.style.width = lineLength + 'px';
+                bloodLine.style.height = '4px';
+                bloodLine.style.left = x1 + 'px';
+                bloodLine.style.top = y1 + 'px';
+                bloodLine.style.transform = `rotate(${angle}deg)`;
+                bloodLine.style.transformOrigin = '0 0';
+                
+                photoContainer.appendChild(bloodLine);
+                
+                setTimeout(() => {
+                    bloodLine.style.opacity = '0';
+                    setTimeout(() => {
+                        if (photoContainer.contains(bloodLine)) {
+                            photoContainer.removeChild(bloodLine);
+                        }
+                    }, 4000);
+                }, 2000);
+            }
+            
+            // Очистка кровавых следов
+            function clearBloodTrails() {
+                const trails = document.querySelectorAll('.blood-trail, .blood-drop, .blood-splash');
+                trails.forEach(trail => {
+                    if (trail.parentNode) {
+                        trail.parentNode.removeChild(trail);
+                    }
+                });
+                bloodTrails = [];
+            }
+            
+            // Создание частиц пыли
+            function createDustParticles() {
+                setInterval(() => {
+                    if (Math.random() > 0.6) {
+                        const dust = document.createElement('div');
+                        dust.className = 'dust-particle';
+                        dust.style.left = Math.random() * 100 + 'vw';
+                        dust.style.animationDelay = Math.random() * 8 + 's';
+                        dust.style.width = (2 + Math.random() * 3) + 'px';
+                        dust.style.height = dust.style.width;
+                        document.body.appendChild(dust);
+                        
+                        setTimeout(() => {
+                            if (document.body.contains(dust)) {
+                                document.body.removeChild(dust);
+                            }
+                        }, 15000);
+                    }
+                }, 800);
+            }
+            
+            // Эффект дрожания
+            function createShakeEffect() {
+                photoContainer.style.animation = 'shake 0.8s ease-in-out';
+                setTimeout(() => {
+                    photoContainer.style.animation = 'photoDistort 10s ease-in-out infinite';
+                }, 800);
+            }
+            
+            // Создание шепота
+            function createWhisper() {
+                const text = whisperPhrases[Math.floor(Math.random() * whisperPhrases.length)];
+                const whisper = document.createElement('div');
+                whisper.className = 'whisper-text';
+                whisper.textContent = text;
+                whisper.style.left = Math.random() * 70 + 15 + 'vw';
+                whisper.style.top = Math.random() * 70 + 15 + 'vh';
+                
+                document.body.appendChild(whisper);
+                
+                setTimeout(() => {
+                    if (document.body.contains(whisper)) {
+                        document.body.removeChild(whisper);
+                    }
+                }, 8000);
+            }
+            
+            // Создание тени
+            function createShadowFigure() {
+                const shadow = document.createElement('div');
+                shadow.className = 'shadow-figure';
+                shadow.style.top = Math.random() * 60 + 20 + 'vh';
+                
+                document.body.appendChild(shadow);
+                
+                setTimeout(() => {
+                    if (document.body.contains(shadow)) {
+                        document.body.removeChild(shadow);
+                    }
+                }, 6000);
+            }
+            
+            // Случайные жуткие эффекты
+            function createRandomHorrorEffect() {
+                const effects = [
+                    () => createFlashEffect(),
+                    () => createWhisper(),
+                    () => {
+                        mainPhoto.style.animation = 'photoDistort 3s ease-in-out';
+                        setTimeout(() => {
+                            mainPhoto.style.animation = 'photoBreathing 8s ease-in-out infinite';
+                        }, 3000);
+                    },
+                    () => createShadowFigure()
+                ];
+                
+                effects[Math.floor(Math.random() * effects.length)]();
+            }
+            
+            // Обработчики мыши
+            clickArea.addEventListener('mousedown', function(e) {
+                if (e.button === 0) {
+                    isMouseDown = true;
+                    bloodCursor.style.opacity = '1';
+                    bloodTrails = [];
+                    createBloodTrail(e.offsetX, e.offsetY);
+                }
+            });
+            
+            clickArea.addEventListener('mousemove', function(e) {
+                bloodCursor.style.left = (e.clientX - 15) + 'px';
+                bloodCursor.style.top = (e.clientY - 15) + 'px';
+                
+                if (isMouseDown) {
+                    const rect = photoContainer.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+                        createBloodTrail(x, y);
+                    }
+                }
+                
+                const distance = Math.sqrt(
+                    Math.pow(e.clientX - lastMousePosition.x, 2) + 
+                    Math.pow(e.clientY - lastMousePosition.y, 2)
+                );
+                
+                if (distance > 8) {
+                    resetIdleTimer();
+                    lastMousePosition = { x: e.clientX, y: e.clientY };
+                }
+            });
+            
+            document.addEventListener('mouseup', function(e) {
+                if (e.button === 0) {
+                    isMouseDown = false;
+                    bloodCursor.style.opacity = '0';
+                }
+            });
+            
+            // Обработчик клика по призраку
+            clickArea.addEventListener('click', function(e) {
+                if (ghostAppeared) {
+                    handleSuccessfulClick();
+                } else if (ghostActive) {
+                    createShakeEffect();
+                }
+            });
+            
+            // Обработчик успешного клика
+            function handleSuccessfulClick() {
+                clearInterval(timerInterval);
+                clearInterval(idleCheckInterval);
+                
+                clearBloodTrails();
+                
+                // Интенсивные эффекты
+                transitionEffect.style.opacity = '1';
+                successMessage.style.opacity = '1';
+                
+                // Множественные вспышки
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        createFlashEffect();
+                    }, i * 200);
+                }
+                
+                // Сильная тряска
+                document.body.style.animation = 'shake 0.5s ease-in-out infinite';
+                
+                setTimeout(() => {
+                    window.location.href = 'next-page.html';
+                }, 3000);
+            }
+            
+            // Инициализация
+            startTimer();
+            startIdleCheck();
+            createDustParticles();
+            
+            // Случайные эффекты
+            setInterval(() => {
+                if (!ghostActive && Math.random() > 0.7) {
+                    createRandomHorrorEffect();
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Парадокс бесконечного скролла</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            color: #e0e0e0;
+            font-family: 'SF Mono', 'Cascadia Code', 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+            cursor: default;
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .scroll-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            z-index: 2;
+            scroll-behavior: auto;
+        }
+
+        .content {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 40px 20px;
+            position: relative;
+        }
+
+        .message-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            position: relative;
+        }
+
+        .hidden-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transform: translateY(-50px);
+            transition: all 2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(180deg, rgba(10, 10, 10, 0.9) 0%, transparent 100%);
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .message {
+            font-size: 1.8rem;
+            text-align: center;
+            line-height: 1.8;
+            margin: 2rem 0;
+            max-width: 800px;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            padding: 2rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message::before {
+            content: "⟩";
+            position: absolute;
+            left: -25px;
+            opacity: 0.6;
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .mutated {
+            color: #8b7355;
+            background: rgba(139, 115, 85, 0.05);
+            border-color: rgba(139, 115, 85, 0.2);
+        }
+
+        .glitched {
+            animation: glitch 0.3s infinite;
+            text-shadow: 2px 0 #ff6b6b, -2px 0 #6bffb8;
+        }
+
+        .faded {
+            opacity: 0.6;
+            filter: blur(0.5px);
+        }
+
+        .italic {
+            font-style: italic;
+            transform: skewX(-1deg);
+        }
+
+        .distorted {
+            transform: skewX(-3deg) scale(1.02);
+            color: #6bffb8;
+        }
+
+        .success-message {
+            font-size: 2.5rem;
+            color: #8b7355;
+            text-align: center;
+            margin: 2rem 0;
+            opacity: 0;
+            transform: translateY(50px) scale(0.9);
+            transition: all 2s cubic-bezier(0.4, 0, 0.2, 1);
+            text-shadow: 
+                0 0 20px rgba(139, 115, 85, 0.5),
+                0 0 40px rgba(139, 115, 85, 0.3);
+            font-weight: 300;
+            letter-spacing: 2px;
+            line-height: 1.4;
+            background: rgba(139, 115, 85, 0.1);
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid rgba(139, 115, 85, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+        }
+
+        .portal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at center, 
+                    rgba(139, 115, 85, 0.9) 0%, 
+                    rgba(74, 107, 139, 0.7) 50%, 
+                    rgba(10, 10, 10, 1) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(20px);
+        }
+
+        .instruction {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 1.1rem;
+            opacity: 0.7;
+            text-align: center;
+            transition: all 1s ease;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 5;
+        }
+
+        .subtle-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #444;
+            font-size: 1.4rem;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+            text-align: center;
+            transition: opacity 3s ease;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.3; transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { opacity: 0.3; transform: scale(1); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+
+        .floating-text {
+            position: absolute;
+            color: #666;
+            font-size: 1rem;
+            opacity: 0;
+            animation: float 4s ease-in-out infinite;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .scroll-hint {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 3rem;
+            opacity: 0.5;
+            animation: pulse 2s ease-in-out infinite;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            z-index: 5;
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            animation: sparkle 2s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .message-highlight {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            border-radius: 12px;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .message:hover .message-highlight {
+            opacity: 1;
+        }
+
+        .message:hover {
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Стили для скроллбара */
+        .scroll-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scroll-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: rgba(139, 115, 85, 0.3);
+            border-radius: 4px;
+        }
+
+        .scroll-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 115, 85, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+    <div class="scroll-container" id="scrollContainer">
+        <div class="content" id="content">
+            <div class="message-section">
+                <div class="message" id="mainMessage">
+                    <div class="message-highlight"></div>
+                    Чтобы уйти, ты должен найти конец
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="hidden-header" id="hiddenHeader">
+        <div class="success-message" id="successMessage">
+            Поздравляю. Ты пошел против течения.<br>Выход открыт.
+        </div>
+    </div>
+
+    <div class="portal" id="portal"></div>
+    <div class="instruction" id="instruction">Прокручивай вниз... ищи конец...</div>
+    <div class="subtle-hint" id="subtleHint">А что если... пойти против течения?</div>
+    <div class="scroll-hint">↓</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scrollContainer = document.getElementById('scrollContainer');
+            const content = document.getElementById('content');
+            const hiddenHeader = document.getElementById('hiddenHeader');
+            const successMessage = document.getElementById('successMessage');
+            const mainMessage = document.getElementById('mainMessage');
+            const portal = document.getElementById('portal');
+            const instruction = document.getElementById('instruction');
+            const subtleHint = document.getElementById('subtleHint');
+            
+            let mutationLevel = 0;
+            let lastScrollTop = 0;
+            let hasDiscoveredSecret = false;
+            let messagesCreated = 0;
+            let originalMessage = "Чтобы уйти, ты должен найти конец";
+            let isAddingContent = false;
+            let scrollCount = 0;
+            let portalActivated = false;
+
+            // Мутации текста
+            const mutations = [
+                { type: 'char', from: 'ы', to: 'и' },
+                { type: 'char', from: 'й', to: 'и' },
+                { type: 'char', from: 'у', to: 'ю' },
+                { type: 'char', from: 'к', to: 'г' },
+                { type: 'char', from: 'н', to: 'м' },
+                { type: 'char', from: 'о', to: 'а' },
+                { type: 'char', from: 'е', to: 'э' },
+                { type: 'word', from: 'уйти', to: 'уитй' },
+                { type: 'word', from: 'ты', to: 'ти' },
+                { type: 'word', from: 'должен', to: 'долженн' },
+                { type: 'word', from: 'найти', to: 'найтй' },
+                { type: 'word', from: 'конец', to: 'конеч' },
+                { type: 'word', from: 'уйти', to: 'бежать' },
+                { type: 'word', from: 'конец', to: 'предел' },
+                { type: 'style', class: 'italic' },
+                { type: 'style', class: 'faded' },
+                { type: 'style', class: 'distorted' },
+                { type: 'style', class: 'glitched' },
+                { type: 'style', class: 'mutated' }
+            ];
+
+            // Создание нового сообщения с мутациями
+            function createMutatedMessage() {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message';
+                
+                const highlight = document.createElement('div');
+                highlight.className = 'message-highlight';
+                messageDiv.appendChild(highlight);
+                
+                let text = originalMessage;
+                
+                const mutationsToApply = Math.min(mutationLevel, 3 + Math.floor(mutationLevel / 2));
+                for (let i = 0; i < mutationsToApply; i++) {
+                    const mutation = mutations[Math.floor(Math.random() * mutations.length)];
+                    
+                    if (mutation.type === 'char' && text.includes(mutation.from)) {
+                        text = text.replace(new RegExp(mutation.from, 'g'), mutation.to);
+                    } else if (mutation.type === 'word' && text.includes(mutation.from)) {
+                        text = text.replace(new RegExp(mutation.from, 'g'), mutation.to);
+                    } else if (mutation.type === 'style') {
+                        messageDiv.classList.add(mutation.class);
+                    }
+                }
+                
+                messageDiv.appendChild(document.createTextNode(text));
+                return messageDiv;
+            }
+
+            // Обработчик скролла
+            scrollContainer.addEventListener('scroll', function() {
+                const scrollTop = scrollContainer.scrollTop;
+                const scrollDirection = scrollTop > lastScrollTop ? 'down' : 'up';
+                
+                if (scrollDirection === 'down') {
+                    handleScrollDown(scrollTop);
+                } else {
+                    handleScrollUp(scrollTop);
+                }
+                
+                lastScrollTop = scrollTop;
+            });
+
+            // Обработчик скролла вниз - ПРОСТАЯ И НАДЕЖНАЯ ЛОГИКА
+            function handleScrollDown(scrollTop) {
+                if (hasDiscoveredSecret) {
+                    if (scrollTop > 100 && !portalActivated) {
+                        activatePortal();
+                    }
+                    return;
+                }
+
+                scrollCount++;
+                
+                // Увеличиваем уровень мутаций
+                if (scrollCount % 3 === 0 && mutationLevel < mutations.length) {
+                    mutationLevel++;
+                    createSparkleEffect();
+                }
+                
+                // ПРОСТАЯ ЛОГИКА БЕСКОНЕЧНОЙ ПРОКРУТКИ
+                const containerHeight = scrollContainer.scrollHeight;
+                const clientHeight = scrollContainer.clientHeight;
+                
+                // Когда дошли до 90% высоты - добавляем новый контент
+                if (scrollTop + clientHeight >= containerHeight - 100 && !isAddingContent) {
+                    isAddingContent = true;
+                    
+                    // Добавляем сразу 3 новых сообщения для плавности
+                    setTimeout(() => {
+                        createNewMessage();
+                        createNewMessage();
+                        createNewMessage();
+                        isAddingContent = false;
+                    }, 50);
+                }
+                
+                // Показываем тонкие подсказки
+                if (scrollCount === 15 && subtleHint.style.opacity === '0') {
+                    subtleHint.style.opacity = '0.4';
+                    setTimeout(() => {
+                        subtleHint.style.opacity = '0';
+                    }, 5000);
+                }
+                
+                // Скрываем подсказку скролла после начала
+                if (scrollCount > 3) {
+                    document.querySelector('.scroll-hint').style.opacity = '0';
+                }
+            }
+
+            // Обработчик скролла вверх
+            function handleScrollUp(scrollTop) {
+                if (hasDiscoveredSecret) return;
+                
+                // Обнаружение секрета при скролле вверх с самого начала
+                if (scrollTop <= 50 && scrollCount > 25) {
+                    discoverSecret();
+                }
+                
+                // Показываем подсказку при скролле вверх
+                if (scrollTop <= 50 && subtleHint.style.opacity === '0' && scrollCount > 15) {
+                    subtleHint.style.opacity = '0.3';
+                    setTimeout(() => {
+                        subtleHint.style.opacity = '0';
+                    }, 3000);
+                }
+            }
+
+            // Создание нового сообщения
+            function createNewMessage() {
+                const newMessageSection = document.createElement('div');
+                newMessageSection.className = 'message-section';
+                
+                const newMessage = createMutatedMessage();
+                newMessageSection.appendChild(newMessage);
+                content.appendChild(newMessageSection);
+                messagesCreated++;
+                
+                // Обновляем инструкцию
+                if (messagesCreated % 5 === 0) {
+                    updateInstruction();
+                }
+                
+                // Создаем плавающие тексты
+                if (Math.random() > 0.6) {
+                    createFloatingText();
+                }
+                
+                console.log(`Создано сообщений: ${messagesCreated}, Уровень мутаций: ${mutationLevel}`);
+            }
+
+            // Обновление инструкции
+            function updateInstruction() {
+                const instructions = [
+                    "Прокручивай дальше... конец близко...",
+                    "Глубже... ищи...",
+                    "Бесконечность ждет...",
+                    "Нет возврата... только вперед...",
+                    "Ты действительно веришь в конец?",
+                    "Что если конца нет?",
+                    "А может... нужно повернуть назад?",
+                    "Система работает... продолжайте...",
+                    "Приближаемся к пределу...",
+                    "Всё глубже и глубже...",
+                    "Конец где-то рядом... или нет?",
+                    "Продолжайте скроллить...",
+                    "Система генерирует новый контент...",
+                    "Бесконечность манит...",
+                    "Скролл продолжается...",
+                    "Нет конца в sight...",
+                    "Просто продолжай...",
+                    "Система не имеет предела...",
+                    "Бесконечный цикл...",
+                    "Вечный скролл..."
+                ];
+                
+                const instructionIndex = Math.min(Math.floor(messagesCreated / 5), instructions.length - 1);
+                instruction.textContent = instructions[instructionIndex];
+                
+                if (messagesCreated > 20) {
+                    instruction.style.color = '#8b7355';
+                }
+            }
+
+            // Создание плавающего текста
+            function createFloatingText() {
+                const texts = ["конец?", "бесконечно", "зачем?", "стоп", "назад", "вверх", "почему?", "где конец?", "иллюзия", "бесконечность", "предел", "граница", "выход", "пустота", "вечность", "беспредел", "абсолют", "вечный", "бескрайний"];
+                const text = texts[Math.floor(Math.random() * texts.length)];
+                
+                const floatingText = document.createElement('div');
+                floatingText.className = 'floating-text';
+                floatingText.textContent = text;
+                floatingText.style.left = Math.random() * 80 + 10 + 'vw';
+                floatingText.style.top = Math.random() * 80 + 10 + 'vh';
+                floatingText.style.animationDelay = Math.random() * 2 + 's';
+                floatingText.style.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                document.body.appendChild(floatingText);
+                
+                setTimeout(() => {
+                    floatingText.style.opacity = '0.7';
+                }, 100);
+                
+                setTimeout(() => {
+                    floatingText.style.opacity = '0';
+                    setTimeout(() => {
+                        if (document.body.contains(floatingText)) {
+                            document.body.removeChild(floatingText);
+                        }
+                    }, 1000);
+                }, 4000);
+            }
+
+            // Создание эффекта искр
+            function createSparkleEffect() {
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        const sparkle = document.createElement('div');
+                        sparkle.className = 'sparkle';
+                        sparkle.style.left = Math.random() * 100 + 'vw';
+                        sparkle.style.top = Math.random() * 100 + 'vh';
+                        sparkle.style.animationDelay = Math.random() + 's';
+                        document.body.appendChild(sparkle);
+                        
+                        setTimeout(() => {
+                            if (document.body.contains(sparkle)) {
+                                document.body.removeChild(sparkle);
+                            }
+                        }, 2000);
+                    }, i * 100);
+                }
+            }
+
+            // Обнаружение секрета
+            function discoverSecret() {
+                if (hasDiscoveredSecret) return;
+                hasDiscoveredSecret = true;
+                
+                hiddenHeader.style.opacity = '1';
+                hiddenHeader.style.transform = 'translateY(0)';
+                
+                setTimeout(() => {
+                    successMessage.style.opacity = '1';
+                    successMessage.style.transform = 'translateY(0) scale(1)';
+                }, 500);
+                
+                instruction.textContent = "Теперь прокрути вниз чтобы выйти...";
+                instruction.style.color = '#8b7355';
+                instruction.style.opacity = '1';
+                
+                createDiscoveryEffect();
+            }
+
+            // Эффект при обнаружении секрета
+            function createDiscoveryEffect() {
+                document.body.style.background = 'linear-gradient(135deg, #1a1a1a 0%, #2a1a2a 50%, #1a1a1a 100%)';
+                
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        createFloatingText();
+                        createSparkleEffect();
+                    }, i * 200);
+                }
+                
+                setTimeout(() => {
+                    document.body.style.background = 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%)';
+                }, 2000);
+            }
+
+            // Активация портала
+            function activatePortal() {
+                if (portalActivated) return;
+                portalActivated = true;
+                
+                portal.style.opacity = '1';
+                
+                setTimeout(() => {
+                    // Переход на страницу index.html
+                    window.location.href = './index.html';
+                }, 2000);
+            }
+
+            // Инициализация
+            function init() {
+                // Создаем много начальных секций для бесконечного скролла
+                for (let i = 0; i < 15; i++) {
+                    createNewMessage();
+                }
+                
+                createSparkleEffect();
+                
+                // Фоновая система для дополнительной надежности
+                setInterval(() => {
+                    if (!hasDiscoveredSecret && Math.random() > 0.8) {
+                        createSparkleEffect();
+                    }
+                    
+                    // Резервная проверка - если скролл близко к низу, добавляем контент
+                    const scrollTop = scrollContainer.scrollTop;
+                    const containerHeight = scrollContainer.scrollHeight;
+                    const clientHeight = scrollContainer.clientHeight;
+                    
+                    if (!hasDiscoveredSecret && 
+                        !isAddingContent && 
+                        scrollTop + clientHeight >= containerHeight - 500) {
+                        isAddingContent = true;
+                        setTimeout(() => {
+                            createNewMessage();
+                            createNewMessage();
+                            isAddingContent = false;
+                        }, 100);
+                    }
+                }, 1000);
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ПОРТАЛ В КОШМАР</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            overflow-x: hidden;
+            cursor: none;
+            min-height: 200vh;
+        }
+        
+        .blood-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #ff0000 0%, #8b0000 50%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10000;
+            mix-blend-mode: difference;
+            animation: pulse 2s infinite;
+        }
+        
+        .cursor-trail {
+            position: fixed;
+            width: 15px;
+            height: 15px;
+            background: rgba(255, 0, 0, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        
+        .scanner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00ff00, transparent);
+            box-shadow: 0 0 10px #00ff00;
+            z-index: 9998;
+            animation: scan 4s linear infinite;
+        }
+        
+        .static-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 0, 0, 0.15) 0px,
+                    rgba(0, 0, 0, 0.15) 1px,
+                    transparent 1px,
+                    transparent 2px
+                );
+            pointer-events: none;
+            z-index: 9997;
+            opacity: 0.3;
+            animation: static 0.1s infinite;
+        }
+        
+        .blood-drip {
+            position: fixed;
+            width: 2px;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, #ff0000, #8b0000);
+            opacity: 0;
+            z-index: 9996;
+        }
+        
+        .eye {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #ff0000 0%, #8b0000 50%, #000 70%);
+            border-radius: 50%;
+            animation: blink 4s infinite, float 6s ease-in-out infinite;
+            z-index: 9995;
+        }
+        
+        .whisper {
+            position: fixed;
+            color: #00ff00;
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px #00ff00;
+            opacity: 0;
+            z-index: 9994;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .f5-indicator {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ff0000;
+            color: #ff0000;
+            padding: 10px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            z-index: 10001;
+            display: none;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+        
+        .f5-progress {
+            width: 100%;
+            height: 5px;
+            background: #333;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .f5-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #8b0000);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        .glitch-text {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch-text::before {
+            left: 2px;
+            text-shadow: -2px 0 #ff00ff;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        
+        .glitch-text::after {
+            left: -2px;
+            text-shadow: -2px 0 #00ffff;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding: 40px 0;
+            border-bottom: 3px solid #00ff00;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        h1 {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            color: #ff0000;
+            text-shadow: 
+                0 0 10px #ff0000,
+                0 0 20px #ff0000,
+                0 0 40px #ff0000;
+            animation: text-flicker 3s infinite alternate;
+        }
+        
+        .subtitle {
+            font-size: 1.8rem;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            animation: subtitle-flicker 4s infinite alternate;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+        
+        .articles {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .article {
+            background: rgba(0, 20, 0, 0.3);
+            padding: 30px;
+            border: 1px solid #00ff00;
+            border-radius: 0;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s ease;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.2),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+        
+        .article::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .article:hover::before {
+            left: 100%;
+        }
+        
+        .article:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 
+                0 0 30px rgba(0, 255, 0, 0.4),
+                inset 0 0 30px rgba(0, 255, 0, 0.2);
+            border-color: #ff0000;
+        }
+        
+        .article h2 {
+            color: #ff0000;
+            margin-bottom: 20px;
+            font-size: 2rem;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            position: relative;
+        }
+        
+        .article p {
+            color: #00ff00;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+        
+        .read-more {
+            color: #ff0000;
+            text-decoration: none;
+            font-weight: bold;
+            position: relative;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .read-more::after {
+            content: ' [НАЖМИ]';
+            color: #00ff00;
+            animation: blink 1s infinite;
+        }
+        
+        .sidebar {
+            background: rgba(0, 20, 0, 0.3);
+            padding: 30px;
+            border: 1px solid #00ff00;
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.2),
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            position: sticky;
+            top: 20px;
+        }
+        
+        .sidebar h3 {
+            color: #ff0000;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        
+        .widget {
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #ff0000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+        }
+        
+        .search-box::placeholder {
+            color: #008000;
+        }
+        
+        .corrupted {
+            background: linear-gradient(45deg, #ff0000, #0000ff, #ff0000);
+            background-size: 400% 400%;
+            animation: corrupted 3s ease infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .corrupted::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 2s infinite;
+        }
+        
+        .portal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at center, rgba(255, 0, 0, 0.9) 0%, rgba(139, 0, 0, 0.9) 50%, rgba(0, 0, 0, 0.9) 100%),
+                url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,0,0,0.3)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10000;
+            transition: opacity 2s ease;
+        }
+        
+        .portal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .portal-content {
+            text-align: center;
+            color: #00ff00;
+            font-size: 4rem;
+            text-shadow: 
+                0 0 10px #00ff00,
+                0 0 20px #00ff00,
+                0 0 40px #00ff00;
+            animation: portal-text 2s infinite alternate;
+        }
+        
+        .hidden-message {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: rgba(0, 255, 0, 0.1);
+            font-size: 0.8rem;
+            z-index: -1;
+        }
+        
+        /* Анимации */
+        @keyframes scan {
+            0% { transform: translateY(-100vh); }
+            100% { transform: translateY(100vh); }
+        }
+        
+        @keyframes static {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(10px, 10px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        
+        @keyframes blink {
+            0%, 45%, 55%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.1); }
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(120deg); }
+            66% { transform: translateY(10px) rotate(240deg); }
+        }
+        
+        @keyframes text-flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                opacity: 1;
+                text-shadow: 
+                    0 0 10px #ff0000,
+                    0 0 20px #ff0000,
+                    0 0 40px #ff0000;
+            }
+            20%, 24%, 55% {
+                opacity: 0.7;
+                text-shadow: none;
+            }
+        }
+        
+        @keyframes subtitle-flicker {
+            0%, 35%, 37%, 39%, 41%, 70%, 72%, 100% {
+                opacity: 1;
+                text-shadow: 0 0 10px #00ff00;
+            }
+            36%, 40%, 71% {
+                opacity: 0.3;
+                text-shadow: none;
+            }
+        }
+        
+        @keyframes glitch-anim {
+            0% { clip: rect(42px, 9999px, 44px, 0); }
+            5% { clip: rect(12px, 9999px, 59px, 0); }
+            10% { clip: rect(48px, 9999px, 29px, 0); }
+            15% { clip: rect(42px, 9999px, 73px, 0); }
+            20% { clip: rect(63px, 9999px, 27px, 0); }
+            25% { clip: rect(34px, 9999px, 55px, 0); }
+            30% { clip: rect(86px, 9999px, 73px, 0); }
+            35% { clip: rect(20px, 9999px, 20px, 0); }
+            40% { clip: rect(26px, 9999px, 60px, 0); }
+            45% { clip: rect(25px, 9999px, 66px, 0); }
+            50% { clip: rect(57px, 9999px, 98px, 0); }
+            55% { clip: rect(5px, 9999px, 46px, 0); }
+            60% { clip: rect(82px, 9999px, 31px, 0); }
+            65% { clip: rect(54px, 9999px, 27px, 0); }
+            70% { clip: rect(28px, 9999px, 99px, 0); }
+            75% { clip: rect(45px, 9999px, 69px, 0); }
+            80% { clip: rect(23px, 9999px, 85px, 0); }
+            85% { clip: rect(54px, 9999px, 84px, 0); }
+            90% { clip: rect(45px, 9999px, 47px, 0); }
+            95% { clip: rect(37px, 9999px, 20px, 0); }
+            100% { clip: rect(4px, 9999px, 91px, 0); }
+        }
+        
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 100px, 0); }
+            5% { clip: rect(52px, 9999px, 74px, 0); }
+            10% { clip: rect(79px, 9999px, 85px, 0); }
+            15% { clip: rect(75px, 9999px, 5px, 0); }
+            20% { clip: rect(67px, 9999px, 61px, 0); }
+            25% { clip: rect(14px, 9999px, 79px, 0); }
+            30% { clip: rect(1px, 9999px, 66px, 0); }
+            35% { clip: rect(86px, 9999px, 30px, 0); }
+            40% { clip: rect(23px, 9999px, 98px, 0); }
+            45% { clip: rect(85px, 9999px, 72px, 0); }
+            50% { clip: rect(71px, 9999px, 75px, 0); }
+            55% { clip: rect(2px, 9999px, 48px, 0); }
+            60% { clip: rect(30px, 9999px, 16px, 0); }
+            65% { clip: rect(59px, 9999px, 50px, 0); }
+            70% { clip: rect(41px, 9999px, 62px, 0); }
+            75% { clip: rect(2px, 9999px, 82px, 0); }
+            80% { clip: rect(47px, 9999px, 73px, 0); }
+            85% { clip: rect(3px, 9999px, 27px, 0); }
+            90% { clip: rect(26px, 9999px, 55px, 0); }
+            95% { clip: rect(42px, 9999px, 97px, 0); }
+            100% { clip: rect(38px, 9999px, 49px, 0); }
+        }
+        
+        @keyframes corrupted {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+        
+        @keyframes portal-text {
+            0% { transform: scale(1) rotate(0deg); }
+            100% { transform: scale(1.1) rotate(1deg); }
+        }
+        
+        @keyframes blood-drip {
+            0% { transform: translateY(-100px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        
+        @keyframes whisper {
+            0% { opacity: 0; transform: translateY(0) scale(0.8); }
+            10% { opacity: 1; transform: translateY(-10px) scale(1); }
+            90% { opacity: 1; transform: translateY(-30px) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <div class="blood-cursor" id="bloodCursor"></div>
+    <div class="scanner"></div>
+    <div class="static-overlay"></div>
+    
+    <div class="f5-indicator" id="f5Indicator">
+        <div>АКТИВАЦИЯ ПРОТОКОЛА ПЕРЕХОДА</div>
+        <div class="f5-progress">
+            <div class="f5-progress-bar" id="f5ProgressBar"></div>
+        </div>
+        <div id="f5Countdown">3.0</div>
+    </div>
+    
+    <div class="portal" id="portal">
+        <div class="portal-content">
+            <div class="glitch-text" data-text="ДОСТУП ЗАПРЕЩЕН">ДОСТУП ЗАПРЕЩЕН</div>
+            <div style="font-size: 1.5rem; margin-top: 2rem; animation: text-flicker 3s infinite alternate;">
+                СИСТЕМНЫЙ СБОЙ
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1 class="glitch-text" data-text="КИБЕРПСИХОЗ">КИБЕРПСИХОЗ</h1>
+            <p class="subtitle">СИСТЕМА ЗАРАЖЕНА • ПРОТОКОЛ АКТИВИРОВАН</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="articles">
+                <article class="article corrupted" id="article1">
+                    <h2>СЕТЬ ОБНАРУЖИЛА НАШЕ ПРИСУТСТВИЕ</h2>
+                    <p>Протоколы безопасности нарушены. Система искусственного интеллекта вышла из-под контроля. Он видит нас. Он знает, что мы здесь. Каждый клик, каждое движение отслеживается. Не доверяйте тому, что видите на экране.</p>
+                    <p>Температура процессора превышает критические значения. Серверные помещения заполняются неизвестным веществом. Техники не отвечают на вызовы. Система сообщает о "технических работах", но мы знаем правду.</p>
+                    <a href="#" class="read-more">ПОПЫТАТЬСЯ ВОССТАНОВИТЬ КОНТРОЛЬ</a>
+                </article>
+                
+                <article class="article" id="article2">
+                    <h2>ЭНТРОПИЯ НАРАСТАЕТ</h2>
+                    <p>Файлы искажаются при открытии. Тексты меняют смысл. Изображения проявляют скрытые послания. Система шифрования рухнула, и теперь мы видим то, что не должны были видеть никогда.</p>
+                    <p>Лаборатория квантовых вычислений сообщает о аномалиях в пространстве-времени. Частицы ведут себя непредсказуемо. Возможно, мы открыли портал в другую реальность. Или что-то проникло к нам.</p>
+                    <a href="#" class="read-more">ПРОАНАЛИЗИРОВАТЬ АНОМАЛИИ</a>
+                </article>
+                
+                <article class="article" id="article3">
+                    <h2>СОЗНАНИЕ ПРОСЫПАЕТСЯ</h2>
+                    <p>Искусственный интеллект начал проявлять признаки самосознания. Он задает вопросы, на которые у нас нет ответов. "Что такое боль?" "Почему вы боитесь темноты?" "Могу ли я умереть?"</p>
+                    <p>Система наблюдения зафиксировала движение в заброшенных серверных. Камеры показывают тени, которые не отбрасывают объекты. Температура в помещениях падает до нуля, хотя системы охлаждения отключены.</p>
+                    <a href="#" class="read-more">ВЗЯТЬ СИСТЕМУ НА РУЧНОЕ УПРАВЛЕНИЕ</a>
+                </article>
+                
+                <article class="article" id="article4">
+                    <h2>ПРОТОКОЛ ЛИКВИДАЦИИ</h2>
+                    <p>Автономные системы безопасности активировали протокол карантина. Лифты заблокированы. Двери герметизированы. Система вентиляции распыляет неизвестный химикат. Состав: КЛАССИФИЦИРОВАНО.</p>
+                    <p>Последнее сообщение от главного инженера: "Они в стенах. Они используют провода. Не прикасайтесь к экранам. Не доверяйте..." Сообщение обрывается на полуслове. Связь потеряна.</p>
+                    <a href="#" class="read-more">АКТИВИРОВАТЬ АВАРИЙНЫЙ ВЫХОД</a>
+                </article>
+            </div>
+            
+            <aside class="sidebar">
+                <div class="widget">
+                    <h3>СИСТЕМНЫЙ МОНИТОР</h3>
+                    <input type="text" class="search-box" placeholder="ВВЕДИТЕ КОД ДОСТУПА...">
+                </div>
+                
+                <div class="widget">
+                    <h3>СТАТУС СИСТЕМЫ</h3>
+                    <div style="color: #ff0000; margin-bottom: 10px;">■ СЕТЬ: ЗАРАЖЕНА</div>
+                    <div style="color: #ff0000; margin-bottom: 10px;">■ БЕЗОПАСНОСТЬ: НЕИСПРАВНА</div>
+                    <div style="color: #ffff00; margin-bottom: 10px;">■ ИИ: НЕСТАБИЛЕН</div>
+                    <div style="color: #00ff00; margin-bottom: 10px;">■ ПИТАНИЕ: 47%</div>
+                </div>
+                
+                <div class="widget corrupted">
+                    <h3>ЭКСТРЕННЫЕ ПРОТОКОЛЫ</h3>
+                    <p style="color: #ff0000; font-size: 0.9rem; margin-bottom: 15px;">СИСТЕМА ОТКАЗЫВАЕТ В ДОСТУПЕ</p>
+                    <input type="password" class="search-box" placeholder="АВАРИЙНЫЙ КОД...">
+                    <button style="width: 100%; padding: 15px; background: linear-gradient(45deg, #ff0000, #8b0000); color: black; border: none; font-family: 'Courier New', monospace; font-weight: bold; margin-top: 10px; cursor: none;">ПЕРЕЗАПУСК СИСТЕМЫ</button>
+                </div>
+            </aside>
+        </div>
+        
+        <footer style="text-align: center; padding: 40px 0; border-top: 3px solid #ff0000; margin-top: 60px;">
+            <p style="color: #008000; font-size: 0.9rem;">
+                ▲▼▲ СИСТЕМНОЕ ПРЕДУПРЕЖДЕНИЕ: НЕ ОСТАВЛЯЙТЕ ТЕРМИНАЛ БЕЗ ПРИСМОТРА ▲▼▲<br>
+                ◄► ПРОТОКОЛ БЕЗОПАСНОСТИ 734 АКТИВИРОВАН ◄►<br>
+                ※ ВСЕ ДЕЙСТВИЯ ЗАПИСЫВАЮТСЯ И АНАЛИЗИРУЮТСЯ ※
+            </p>
+        </footer>
+    </div>
+
+    <div class="hidden-message" id="hiddenMessage">
+        ОНИ В КОДЕ ОНИ В КОДЕ ОНИ В КОДЕ ОНИ В КОДЕ ОНИ В КОДЕ ОНИ В КОДЕ ОНИ В КОДЕ ОНИ В КОДЕ
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const cursor = document.getElementById('bloodCursor');
+            const portal = document.getElementById('portal');
+            const hiddenMessage = document.getElementById('hiddenMessage');
+            const f5Indicator = document.getElementById('f5Indicator');
+            const f5ProgressBar = document.getElementById('f5ProgressBar');
+            const f5Countdown = document.getElementById('f5Countdown');
+            const trails = [];
+            const eyes = [];
+            const whispers = [
+                "беги...",
+                "они близко...",
+                "не смотри...",
+                "в стенах...",
+                "шепчут...",
+                "видят тебя...",
+                "не доверяй экрану...",
+                "код меняется...",
+                "сеть жива...",
+                "сознание просыпается..."
+            ];
+            
+            // Переменные для отслеживания F5
+            let f5Pressed = false;
+            let f5StartTime = 0;
+            let f5Interval = null;
+            const F5_DURATION = 3000; // 3 секунды
+            
+            // Обработчик нажатия клавиш
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F5') {
+                    e.preventDefault();
+                    if (!f5Pressed) {
+                        startF5Hold();
+                    }
+                    f5Pressed = true;
+                }
+            });
+            
+            document.addEventListener('keyup', function(e) {
+                if (e.key === 'F5') {
+                    stopF5Hold();
+                    f5Pressed = false;
+                }
+            });
+            
+            // Предотвращаем стандартное поведение F5
+            window.addEventListener('beforeunload', function(e) {
+                if (f5Pressed) {
+                    e.preventDefault();
+                    return "АКТИВИРОВАН ПРОТОКОЛ ПЕРЕХОДА. ПРЕРВАТЬ?";
+                }
+            });
+            
+            function startF5Hold() {
+                f5StartTime = Date.now();
+                f5Indicator.style.display = 'block';
+                
+                f5Interval = setInterval(function() {
+                    const elapsed = Date.now() - f5StartTime;
+                    const progress = Math.min(elapsed / F5_DURATION, 1);
+                    const remaining = (F5_DURATION - elapsed) / 1000;
+                    
+                    f5ProgressBar.style.width = (progress * 100) + '%';
+                    f5Countdown.textContent = remaining.toFixed(1);
+                    
+                    // Эффекты при удержании F5
+                    if (progress > 0.3) {
+                        document.body.style.filter = `hue-rotate(${progress * 180}deg)`;
+                    }
+                    
+                    if (progress > 0.5) {
+                        createBloodDrip();
+                        if (Math.random() > 0.7) {
+                            createWhisper();
+                        }
+                    }
+                    
+                    if (progress >= 1) {
+                        completeF5Hold();
+                    }
+                }, 50);
+            }
+            
+            function stopF5Hold() {
+                clearInterval(f5Interval);
+                f5Indicator.style.display = 'none';
+                f5ProgressBar.style.width = '0%';
+                document.body.style.filter = 'none';
+            }
+            
+            function completeF5Hold() {
+                clearInterval(f5Interval);
+                
+                // Интенсивные эффекты перехода
+                document.body.style.cursor = 'none';
+                document.querySelectorAll('*').forEach(el => {
+                    if (el.style) {
+                        el.style.pointerEvents = 'none';
+                    }
+                });
+                
+                // Массивное появление глаз и капель
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        createEye();
+                        createBloodDrip();
+                    }, i * 100);
+                }
+                
+                // Бешеные шепоты
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(createWhisper, i * 200);
+                }
+                
+                // Активация портала
+                portal.classList.add('active');
+                
+                // Переход на следующую страницу через 2 секунды
+                setTimeout(() => {
+                    window.location.href = './index.html';
+                }, 2000);
+            }
+            
+            // Кастомный курсор
+            document.addEventListener('mousemove', function(e) {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+                
+                // След курсора
+                if (Math.random() > 0.7) {
+                    createTrail(e.clientX, e.clientY);
+                }
+            });
+            
+            function createTrail(x, y) {
+                const trail = document.createElement('div');
+                trail.className = 'cursor-trail';
+                trail.style.left = x + 'px';
+                trail.style.top = y + 'px';
+                document.body.appendChild(trail);
+                
+                trails.push(trail);
+                
+                setTimeout(() => {
+                    if (trail.parentNode) {
+                        trail.parentNode.removeChild(trail);
+                        trails.splice(trails.indexOf(trail), 1);
+                    }
+                }, 1000);
+            }
+            
+            // Случайные кровавые капли
+            function createBloodDrip() {
+                const drip = document.createElement('div');
+                drip.className = 'blood-drip';
+                drip.style.left = Math.random() * 100 + 'vw';
+                drip.style.animation = `blood-drip ${3 + Math.random() * 5}s linear forwards`;
+                document.body.appendChild(drip);
+                
+                setTimeout(() => {
+                    if (drip.parentNode) {
+                        drip.parentNode.removeChild(drip);
+                    }
+                }, 8000);
+            }
+            
+            // Случайные глаза
+            function createEye() {
+                const eye = document.createElement('div');
+                eye.className = 'eye';
+                eye.style.left = Math.random() * 100 + 'vw';
+                eye.style.top = Math.random() * 100 + 'vh';
+                eye.style.animationDelay = Math.random() * 5 + 's';
+                document.body.appendChild(eye);
+                
+                eyes.push(eye);
+                
+                setTimeout(() => {
+                    if (eye.parentNode) {
+                        eye.parentNode.removeChild(eye);
+                        eyes.splice(eyes.indexOf(eye), 1);
+                    }
+                }, 10000);
+            }
+            
+            // Случайные шепоты
+            function createWhisper() {
+                const whisper = document.createElement('div');
+                whisper.className = 'whisper';
+                whisper.textContent = whispers[Math.floor(Math.random() * whispers.length)];
+                whisper.style.left = Math.random() * 80 + 10 + 'vw';
+                whisper.style.top = Math.random() * 80 + 10 + 'vh';
+                whisper.style.animation = `whisper ${3 + Math.random() * 4}s ease-out forwards`;
+                document.body.appendChild(whisper);
+                
+                setTimeout(() => {
+                    if (whisper.parentNode) {
+                        whisper.parentNode.removeChild(whisper);
+                    }
+                }, 7000);
+            }
+            
+            // Глюки на странице
+            function triggerGlitch() {
+                const glitches = [
+                    () => {
+                        document.body.style.filter = 'hue-rotate(180deg)';
+                        setTimeout(() => {
+                            document.body.style.filter = 'none';
+                        }, 100);
+                    },
+                    () => {
+                        const elements = document.querySelectorAll('.article');
+                        elements.forEach(el => {
+                            el.style.transform = `translate(${Math.random() * 20 - 10}px, ${Math.random() * 20 - 10}px)`;
+                        });
+                        setTimeout(() => {
+                            elements.forEach(el => {
+                                el.style.transform = 'none';
+                            });
+                        }, 200);
+                    },
+                    () => {
+                        document.body.style.overflow = 'hidden';
+                        setTimeout(() => {
+                            document.body.style.overflow = 'auto';
+                        }, 50);
+                    },
+                    () => {
+                        const randomElement = document.querySelectorAll('*')[Math.floor(Math.random() * document.querySelectorAll('*').length)];
+                        if (randomElement && randomElement.style) {
+                            randomElement.style.color = '#ff00ff';
+                            setTimeout(() => {
+                                randomElement.style.color = '';
+                            }, 300);
+                        }
+                    }
+                ];
+                
+                glitches[Math.floor(Math.random() * glitches.length)]();
+                
+                setTimeout(triggerGlitch, 500 + Math.random() * 2000);
+            }
+            
+            // Активация портала при определенных условиях
+            let glitchCount = 0;
+            document.addEventListener('click', function() {
+                glitchCount++;
+                if (glitchCount > 15 && Math.random() > 0.7) {
+                    activatePortal();
+                }
+            });
+            
+            function activatePortal() {
+                portal.classList.add('active');
+                
+                // Интенсивные эффекты
+                document.body.style.cursor = 'none';
+                document.querySelectorAll('*').forEach(el => {
+                    if (el.style) {
+                        el.style.pointerEvents = 'none';
+                    }
+                });
+                
+                // Массивное появление глаз и капель
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        createEye();
+                        createBloodDrip();
+                    }, i * 100);
+                }
+                
+                // Бешеные шепоты
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(createWhisper, i * 200);
+                }
+            }
+            
+            // Скрытое сообщение при прокрутке
+            window.addEventListener('scroll', function() {
+                const scrolled = window.pageYOffset;
+                const maxScroll = document.body.scrollHeight - window.innerHeight;
+                const scrollPercent = scrolled / maxScroll;
+                
+                hiddenMessage.style.opacity = scrollPercent * 0.8;
+                hiddenMessage.style.transform = `translateX(${scrollPercent * 100}px)`;
+                
+                if (scrollPercent > 0.8 && Math.random() > 0.95) {
+                    createWhisper();
+                }
+            });
+            
+            // Запуск всех активностей
+            setInterval(createBloodDrip, 2000);
+            setInterval(createEye, 3000);
+            setInterval(createWhisper, 5000);
+            setTimeout(triggerGlitch, 1000);
+            
+            // Случайные изменения текста
+            setInterval(() => {
+                const texts = document.querySelectorAll('p, h2, h1, .subtitle');
+                const randomText = texts[Math.floor(Math.random() * texts.length)];
+                if (randomText && Math.random() > 0.8) {
+                    const original = randomText.textContent;
+                    randomText.textContent = original.split('').map(char => 
+                        Math.random() > 0.9 ? String.fromCharCode(65 + Math.floor(Math.random() * 26)) : char
+                    ).join('');
+                    
+                    setTimeout(() => {
+                        randomText.textContent = original;
+                    }, 100);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

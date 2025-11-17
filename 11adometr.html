@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Одометр Безумия</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        .container {
+            text-align: center;
+            z-index: 10;
+            max-width: 800px;
+            padding: 20px;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: #8b0000;
+            text-shadow: 0 0 20px rgba(139, 0, 0, 0.7);
+            animation: titlePulse 4s infinite;
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 3rem;
+            color: #a0a0a0;
+            line-height: 1.6;
+        }
+        
+        .odometer-container {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            border: 3px solid #333;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 0 30px rgba(139, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .odometer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            font-size: 5rem;
+            font-weight: bold;
+            color: #8b0000;
+            text-shadow: 0 0 15px rgba(139, 0, 0, 0.5);
+            margin-bottom: 2rem;
+            font-family: 'Courier New', monospace;
+            height: 120px;
+        }
+        
+        .digit {
+            width: 80px;
+            height: 100px;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .digit::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(139, 0, 0, 0.1) 50%, transparent 70%);
+            animation: digitShine 3s infinite;
+        }
+        
+        .instruction {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #ccc;
+        }
+        
+        .click-counter {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: #666;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: #1a1a1a;
+            border-radius: 5px;
+            margin: 2rem 0;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #8b0000, #ff0000);
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: progressShine 2s infinite;
+        }
+        
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            color: #00ff00;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.7);
+            transition: opacity 1s;
+        }
+        
+        .transition-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0,255,0,0.8) 0%, rgba(0,0,0,1) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 99;
+            transition: opacity 2s;
+        }
+        
+        .madness-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 8;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .floating-text {
+            position: absolute;
+            color: #8b0000;
+            font-size: 1.5rem;
+            opacity: 0;
+            animation: floatText 10s linear infinite;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        /* Новые эффекты */
+        .blood-drip {
+            position: fixed;
+            width: 2px;
+            height: 100px;
+            background: linear-gradient(to bottom, transparent, #ff0000, #8b0000);
+            opacity: 0;
+            z-index: 6;
+            pointer-events: none;
+        }
+        
+        .screaming-face {
+            position: fixed;
+            font-size: 4rem;
+            opacity: 0;
+            z-index: 7;
+            pointer-events: none;
+            animation: scream 2s ease-out;
+        }
+        
+        .glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(0, 0, 0, 0.15) 0px,
+                    rgba(0, 0, 0, 0.15) 1px,
+                    transparent 1px,
+                    transparent 2px
+                );
+            pointer-events: none;
+            z-index: 11;
+            opacity: 0;
+            animation: static 0.1s infinite;
+        }
+        
+        .whisper-text {
+            position: fixed;
+            color: #00ff00;
+            font-size: 1.2rem;
+            text-shadow: 0 0 10px #00ff00;
+            opacity: 0;
+            z-index: 12;
+            pointer-events: none;
+            white-space: nowrap;
+            animation: whisper 4s ease-out forwards;
+        }
+        
+        .shadow-figure {
+            position: fixed;
+            width: 100px;
+            height: 200px;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, transparent 70%);
+            opacity: 0;
+            z-index: 4;
+            pointer-events: none;
+            animation: shadowMove 5s ease-in-out;
+        }
+        
+        .number-ghost {
+            position: fixed;
+            font-size: 8rem;
+            color: rgba(139, 0, 0, 0.1);
+            opacity: 0;
+            z-index: 3;
+            pointer-events: none;
+            animation: ghostFloat 8s linear;
+        }
+
+        @keyframes titlePulse {
+            0% { text-shadow: 0 0 20px rgba(139, 0, 0, 0.7); }
+            50% { text-shadow: 0 0 30px rgba(139, 0, 0, 1), 0 0 40px rgba(139, 0, 0, 0.5); }
+            100% { text-shadow: 0 0 20px rgba(139, 0, 0, 0.7); }
+        }
+        
+        @keyframes digitShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @keyframes progressShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @keyframes floatText {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Новые анимации */
+        @keyframes bloodDrip {
+            0% { transform: translateY(-100px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+        
+        @keyframes scream {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            20% { transform: scale(1.2) rotate(5deg); opacity: 1; }
+            80% { transform: scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: scale(0.5) rotate(-5deg); opacity: 0; }
+        }
+        
+        @keyframes static {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(10px, 10px); }
+        }
+        
+        @keyframes whisper {
+            0% { opacity: 0; transform: translateY(0) scale(0.8); }
+            10% { opacity: 1; transform: translateY(-10px) scale(1); }
+            90% { opacity: 1; transform: translateY(-30px) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+        }
+        
+        @keyframes shadowMove {
+            0% { transform: translateX(-100px) scale(0.5); opacity: 0; }
+            20% { transform: translateX(0) scale(1); opacity: 0.8; }
+            80% { transform: translateX(100px) scale(1); opacity: 0.8; }
+            100% { transform: translateX(200px) scale(0.5); opacity: 0; }
+        }
+        
+        @keyframes ghostFloat {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            20% { opacity: 0.3; }
+            80% { opacity: 0.3; }
+            100% { transform: translateY(-100vh) rotate(360deg); opacity: 0; }
+        }
+        
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+        
+        .impossible-text {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #666;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="impossible-text">ЗАДАЧА ПРАКТИЧЕСКИ НЕВЫПОЛНИМА</div>
+    
+    <div class="container">
+        <h1>ОДОМЕТР БЕЗУМИЯ</h1>
+        <p class="subtitle">Останови его на 0. Каждый клик замедляет цифры.<br>Но сможешь ли ты поймать момент, когда все они сойдутся на нуле?</p>
+        
+        <div class="odometer-container">
+            <div class="odometer" id="odometer">
+                <div class="digit" id="digit1">9</div>
+                <div class="digit" id="digit2">9</div>
+                <div class="digit" id="digit3">9</div>
+            </div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="instruction">Кликай по счетчику, чтобы замедлить цифры</div>
+            <div class="click-counter">Кликов: <span id="clickCount">0</span></div>
+        </div>
+    </div>
+    
+    <div class="success-message" id="successMessage">СВОБОДА</div>
+    <div class="transition-effect" id="transitionEffect"></div>
+    <div class="madness-effect" id="madnessEffect"></div>
+    <div class="glitch-overlay" id="glitchOverlay"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const odometer = document.getElementById('odometer');
+            const digits = [
+                document.getElementById('digit1'),
+                document.getElementById('digit2'),
+                document.getElementById('digit3')
+            ];
+            const clickCountElement = document.getElementById('clickCount');
+            const progressBar = document.getElementById('progressBar');
+            const successMessage = document.getElementById('successMessage');
+            const transitionEffect = document.getElementById('transitionEffect');
+            const madnessEffect = document.getElementById('madnessEffect');
+            const glitchOverlay = document.getElementById('glitchOverlay');
+            
+            // Расширенный список жутких фраз
+            const creepyPhrases = [
+                "БЕЗУМИЕ НАСТУПАЕТ", "ОН СЛЫШИТ ТЕБЯ", "ЦИФРЫ ЛГУТ", 
+                "НЕТ ВЫХОДА", "ОНИ В СТЕНАХ", "ШЕПЧУТ ЦИФРЫ", 
+                "СЕТЬ ПРОСЫПАЕТСЯ", "НЕ ДОВЕРЯЙ ГЛАЗАМ", "КОД ИЗМЕНЯЕТСЯ",
+                "ПОРТАЛ ОТКРЫТ", "ТЕНИ ДВИЖУТСЯ", "СИСТЕМА ЗАРАЖЕНА",
+                "СОЗНАНИЕ УГАСАЕТ", "ВРЕМЯ ИСКАЖАЕТСЯ", "РЕАЛЬНОСТЬ ТРЕЩИТ",
+                "ОН ПРИБЛИЖАЕТСЯ", "БЕГИ ПОКА НЕ ПОЗДНО", "НИКТО НЕ СПАСЕТСЯ",
+                "КОШМАР НАЧИНАЕТСЯ", "ЦИФРЫ КРОВОТОЧАТ", "ЭКРАН ЛЖЕТ",
+                "СЕТЬ ЖИВА", "ПРОТОКОЛ СБОЯ", "ДОСТУП ЗАПРЕЩЕН",
+                "СИГНАЛ ПОТЕРЯН", "ПЕРЕЗАГРУЗКА НЕВОЗМОЖНА", "СИСТЕМА ОТКАЗЫВАЕТ",
+                "000000000000", "111111111111", "999999999999",
+                "НЕТ СПАСЕНИЯ", "ВСЕ ПРОПАЛО", "КОНЕЦ БЛИЗОК",
+                "ОН ВИДИТ ТВОИ МЫСЛИ", "ЦИФРЫ УМНЕЕ ТЕБЯ", "СЕТЬ НЕНАВИДИТ ТЕБЯ"
+            ];
+            
+            const whisperPhrases = [
+                "беги...", "они близко...", "не смотри...", "в стенах...",
+                "шепчут...", "видят тебя...", "не доверяй экрану...", 
+                "код меняется...", "сеть жива...", "сознание просыпается...",
+                "он идет...", "спасайся...", "нет выхода...", "все кончено...",
+                "они в проводах...", "экран врет...", "время искажается...",
+                "реальность ломается...", "никто не спасется...", "конец близок..."
+            ];
+            
+            let clickCount = 0;
+            let speeds = [100, 150, 200];
+            let currentValues = [9, 9, 9];
+            let intervals = [];
+            let isTransitioning = false;
+            let madnessLevel = 0;
+            
+            // Инициализация цифр
+            function initializeDigits() {
+                intervals.forEach(interval => clearInterval(interval));
+                intervals = [];
+                
+                digits.forEach((digit, index) => {
+                    const interval = setInterval(() => {
+                        currentValues[index] = (currentValues[index] + 1) % 10;
+                        digit.textContent = currentValues[index];
+                        digit.classList.add('pulse');
+                        setTimeout(() => digit.classList.remove('pulse'), 500);
+                    }, speeds[index]);
+                    
+                    intervals.push(interval);
+                });
+            }
+            
+            // Замедление цифр при клике
+            function slowDownDigits() {
+                if (isTransitioning) return;
+                
+                clickCount++;
+                clickCountElement.textContent = clickCount;
+                madnessLevel = Math.min(clickCount / 30, 1);
+                
+                // Увеличиваем прогресс бар
+                const progress = Math.min(clickCount * 2, 100);
+                progressBar.style.width = progress + '%';
+                
+                // Замедляем каждую цифру
+                digits.forEach((digit, index) => {
+                    speeds[index] += 50 + Math.random() * 100;
+                    
+                    clearInterval(intervals[index]);
+                    intervals[index] = setInterval(() => {
+                        currentValues[index] = (currentValues[index] + 1) % 10;
+                        digit.textContent = currentValues[index];
+                        digit.classList.add('pulse');
+                        setTimeout(() => digit.classList.remove('pulse'), 500);
+                        
+                        checkForWin();
+                    }, speeds[index]);
+                });
+                
+                // Эффекты при клике
+                createClickEffects();
+                
+                // Случайные спецэффекты
+                if (Math.random() < madnessLevel * 0.3) {
+                    triggerRandomEffect();
+                }
+                
+                // Увеличиваем безумие
+                increaseMadness();
+            }
+            
+            // Проверка на выигрыш
+            function checkForWin() {
+                if (currentValues.every(val => val === 0)) {
+                    activateWinSequence();
+                }
+            }
+            
+            // Активация последовательности победы
+            function activateWinSequence() {
+                if (isTransitioning) return;
+                isTransitioning = true;
+                
+                intervals.forEach(interval => clearInterval(interval));
+                successMessage.style.opacity = '1';
+                transitionEffect.style.opacity = '1';
+                
+                createFreedomEffects();
+                
+                setTimeout(() => {
+                    window.location.href = 'freedom-page.html';
+                }, 3000);
+            }
+            
+            // Создание эффектов при клике
+            function createClickEffects() {
+                // Вибрация
+                if (navigator.vibrate) {
+                    navigator.vibrate(50);
+                }
+                
+                // Случайные плавающие тексты
+                if (Math.random() > 0.5) {
+                    createFloatingText();
+                }
+                
+                // Эффект дрожания
+                document.body.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
+                setTimeout(() => {
+                    document.body.style.transform = 'none';
+                }, 100);
+                
+                // Случайные шепоты
+                if (Math.random() > 0.7) {
+                    createWhisper();
+                }
+            }
+            
+            // Создание плавающего текста
+            function createFloatingText() {
+                const text = creepyPhrases[Math.floor(Math.random() * creepyPhrases.length)];
+                
+                const floatingText = document.createElement('div');
+                floatingText.className = 'floating-text';
+                floatingText.textContent = text;
+                floatingText.style.left = Math.random() * 100 + 'vw';
+                floatingText.style.animationDelay = Math.random() * 2 + 's';
+                floatingText.style.fontSize = (0.8 + Math.random() * 1.2) + 'rem';
+                floatingText.style.color = `hsl(${Math.random() * 60}, 100%, 50%)`;
+                floatingText.style.zIndex = '5';
+                
+                document.body.appendChild(floatingText);
+                
+                setTimeout(() => {
+                    if (document.body.contains(floatingText)) {
+                        document.body.removeChild(floatingText);
+                    }
+                }, 10000);
+            }
+            
+            // Создание шепота
+            function createWhisper() {
+                const text = whisperPhrases[Math.floor(Math.random() * whisperPhrases.length)];
+                
+                const whisper = document.createElement('div');
+                whisper.className = 'whisper-text';
+                whisper.textContent = text;
+                whisper.style.left = Math.random() * 80 + 10 + 'vw';
+                whisper.style.top = Math.random() * 80 + 10 + 'vh';
+                whisper.style.animation = `whisper ${3 + Math.random() * 4}s ease-out forwards`;
+                
+                document.body.appendChild(whisper);
+                
+                setTimeout(() => {
+                    if (document.body.contains(whisper)) {
+                        document.body.removeChild(whisper);
+                    }
+                }, 7000);
+            }
+            
+            // Случайные спецэффекты
+            function triggerRandomEffect() {
+                const effects = [
+                    createBloodDrip,
+                    createScreamingFace,
+                    createShadowFigure,
+                    createNumberGhost,
+                    triggerGlitchEffect,
+                    invertColors,
+                    shakeScreen
+                ];
+                
+                const randomEffect = effects[Math.floor(Math.random() * effects.length)];
+                randomEffect();
+            }
+            
+            // Кровавые капли
+            function createBloodDrip() {
+                const drip = document.createElement('div');
+                drip.className = 'blood-drip';
+                drip.style.left = Math.random() * 100 + 'vw';
+                drip.style.animation = `bloodDrip ${3 + Math.random() * 5}s linear forwards`;
+                document.body.appendChild(drip);
+                
+                setTimeout(() => {
+                    if (document.body.contains(drip)) {
+                        document.body.removeChild(drip);
+                    }
+                }, 8000);
+            }
+            
+            // Кричащее лицо
+            function createScreamingFace() {
+                const faces = ['😱', '👹', '💀', '👻', '🤖'];
+                const face = document.createElement('div');
+                face.className = 'screaming-face';
+                face.textContent = faces[Math.floor(Math.random() * faces.length)];
+                face.style.left = Math.random() * 80 + 10 + 'vw';
+                face.style.top = Math.random() * 80 + 10 + 'vh';
+                face.style.animation = `scream ${2 + Math.random() * 2}s ease-out forwards`;
+                
+                document.body.appendChild(face);
+                
+                setTimeout(() => {
+                    if (document.body.contains(face)) {
+                        document.body.removeChild(face);
+                    }
+                }, 4000);
+            }
+            
+            // Теневая фигура
+            function createShadowFigure() {
+                const shadow = document.createElement('div');
+                shadow.className = 'shadow-figure';
+                shadow.style.top = Math.random() * 80 + 10 + 'vh';
+                shadow.style.animation = `shadowMove ${4 + Math.random() * 3}s ease-in-out forwards`;
+                
+                document.body.appendChild(shadow);
+                
+                setTimeout(() => {
+                    if (document.body.contains(shadow)) {
+                        document.body.removeChild(shadow);
+                    }
+                }, 7000);
+            }
+            
+            // Призрачные цифры
+            function createNumberGhost() {
+                const numbers = ['0', '1', '6', '6', '6', '9'];
+                const ghost = document.createElement('div');
+                ghost.className = 'number-ghost';
+                ghost.textContent = numbers[Math.floor(Math.random() * numbers.length)];
+                ghost.style.left = Math.random() * 100 + 'vw';
+                ghost.style.animation = `ghostFloat ${6 + Math.random() * 4}s linear forwards`;
+                
+                document.body.appendChild(ghost);
+                
+                setTimeout(() => {
+                    if (document.body.contains(ghost)) {
+                        document.body.removeChild(ghost);
+                    }
+                }, 10000);
+            }
+            
+            // Глюк-эффект
+            function triggerGlitchEffect() {
+                glitchOverlay.style.opacity = '0.3';
+                document.body.style.animation = 'glitch 0.3s ease-in-out';
+                
+                setTimeout(() => {
+                    glitchOverlay.style.opacity = '0';
+                    document.body.style.animation = 'none';
+                }, 300);
+            }
+            
+            // Инверсия цветов
+            function invertColors() {
+                document.body.style.filter = 'invert(1)';
+                setTimeout(() => {
+                    document.body.style.filter = 'none';
+                }, 200);
+            }
+            
+            // Тряска экрана
+            function shakeScreen() {
+                const shakeIntensity = 20 * madnessLevel;
+                document.body.style.transform = `translate(${Math.random() * shakeIntensity - shakeIntensity/2}px, ${Math.random() * shakeIntensity - shakeIntensity/2}px)`;
+                setTimeout(() => {
+                    document.body.style.transform = 'none';
+                }, 500);
+            }
+            
+            // Увеличение эффекта безумия
+            function increaseMadness() {
+                madnessEffect.style.opacity = madnessLevel * 0.3;
+                
+                if (madnessLevel > 0.5) {
+                    const hue = Math.sin(Date.now() / 1000) * 30 + 330;
+                    document.body.style.background = `radial-gradient(circle at center, hsl(${hue}, 50%, 5%) 0%, #000000 100%)`;
+                }
+                
+                if (madnessLevel > 0.8 && Math.random() > 0.9) {
+                    createMadnessDistortion();
+                }
+            }
+            
+            // Создание искажений безумия
+            function createMadnessDistortion() {
+                const distortion = document.createElement('div');
+                distortion.style.position = 'fixed';
+                distortion.style.top = '0';
+                distortion.style.left = '0';
+                distortion.style.width = '100%';
+                distortion.style.height = '100%';
+                distortion.style.background = `radial-gradient(circle, hsl(${Math.random() * 360}, 100%, 50%) 0%, transparent 70%)`;
+                distortion.style.opacity = '0.1';
+                distortion.style.pointerEvents = 'none';
+                distortion.style.zIndex = '9';
+                distortion.style.mixBlendMode = 'overlay';
+                
+                document.body.appendChild(distortion);
+                
+                setTimeout(() => {
+                    if (document.body.contains(distortion)) {
+                        document.body.removeChild(distortion);
+                    }
+                }, 1000);
+            }
+            
+            // Эффекты освобождения
+            function createFreedomEffects() {
+                for (let i = 0; i < 20; i++) {
+                    setTimeout(() => {
+                        const zero = document.createElement('div');
+                        zero.className = 'floating-text';
+                        zero.textContent = '0';
+                        zero.style.left = Math.random() * 100 + 'vw';
+                        zero.style.animationDuration = (3 + Math.random() * 4) + 's';
+                        zero.style.color = '#00ff00';
+                        zero.style.fontSize = '2rem';
+                        zero.style.fontWeight = 'bold';
+                        
+                        document.body.appendChild(zero);
+                        
+                        setTimeout(() => {
+                            if (document.body.contains(zero)) {
+                                document.body.removeChild(zero);
+                            }
+                        }, 7000);
+                    }, i * 150);
+                }
+            }
+            
+            // Обработчик клика
+            odometer.addEventListener('click', slowDownDigits);
+            
+            // Запускаем одометр
+            initializeDigits();
+            
+            // Создаем начальные эффекты
+            setInterval(createFloatingText, 2000);
+            setInterval(() => {
+                if (Math.random() > 0.8) {
+                    createWhisper();
+                }
+            }, 3000);
+            
+            // Случайное изменение скоростей
+            setInterval(() => {
+                if (!isTransitioning && Math.random() > 0.8) {
+                    digits.forEach((_, index) => {
+                        speeds[index] = Math.max(50, speeds[index] + (Math.random() * 100 - 50));
+                    });
+                }
+            }, 3000);
+            
+            // Автоматические случайные эффекты
+            setInterval(() => {
+                if (!isTransitioning && Math.random() < madnessLevel * 0.2) {
+                    triggerRandomEffect();
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

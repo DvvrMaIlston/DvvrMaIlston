@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Книга Теней</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0502;
+            color: #d4c0a1;
+            font-family: 'Times New Roman', serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: default;
+        }
+
+        .book-container {
+            position: relative;
+            width: 90%;
+            max-width: 800px;
+            height: 85vh;
+        }
+
+        .book {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #f0e6d2;
+            border: 12px solid #5d4037;
+            border-radius: 3px;
+            box-shadow: 
+                0 0 30px rgba(0,0,0,0.8),
+                inset 0 0 80px rgba(139,69,19,0.3);
+            padding: 30px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            overflow-y: auto;
+            font-size: 1rem;
+            line-height: 1.6;
+            text-align: justify;
+        }
+
+        .stain {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(101,67,33,0.1);
+            filter: blur(5px);
+        }
+
+        .stain-1 { width: 120px; height: 120px; top: 10%; left: 15%; }
+        .stain-2 { width: 80px; height: 80px; top: 70%; left: 80%; }
+        .stain-3 { width: 150px; height: 150px; top: 30%; left: 70%; }
+
+        .blood-stain {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, rgba(139,0,0,0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            filter: blur(3px);
+        }
+
+        .ancient-text {
+            font-family: 'Georgia', serif;
+            color: #3a2c1e;
+            margin-bottom: 1.5rem;
+        }
+
+        .secret-text {
+            color: #8b0000;
+            font-style: italic;
+            margin: 1rem 0;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .revealed {
+            opacity: 1;
+        }
+
+        .moving-symbol {
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+            cursor: pointer;
+        }
+
+        .shadow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 30%, rgba(0,0,0,0.8) 70%);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .flicker {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.03);
+            animation: flicker 10s infinite;
+            pointer-events: none;
+            z-index: 6;
+        }
+
+        .whisper-text {
+            position: absolute;
+            font-size: 0.8rem;
+            color: #8b0000;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 30;
+            text-align: center;
+            width: 150px;
+            transition: opacity 0.5s;
+            font-style: italic;
+        }
+
+        /* Стили для различных кругов и печатей */
+        .ritual-circle {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border: 2px solid #8b0000;
+            border-radius: 50%;
+            cursor: crosshair;
+        }
+
+        .ritual-path {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150px;
+            height: 150px;
+            border: 1px dashed #8b0000;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .ritual-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: #8b0000;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .false-seal {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border: 2px solid #5d4037;
+            border-radius: 50%;
+            cursor: crosshair;
+        }
+
+        .false-seal-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150px;
+            height: 150px;
+            border: 1px dashed #5d4037;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .false-seal-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: #5d4037;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .triangle-seal {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            cursor: crosshair;
+        }
+
+        .triangle-seal::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150px;
+            height: 150px;
+            border: 2px solid #5d4037;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            transform: translate(-50%, -50%);
+        }
+
+        .square-seal {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            border: 2px solid #5d4037;
+            cursor: crosshair;
+        }
+
+        .square-seal-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 150px;
+            height: 150px;
+            border: 1px dashed #5d4037;
+            transform: translate(-50%, -50%);
+        }
+
+        .cursor-trail {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #8b0000;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0.7;
+            transform: translate(-50%, -50%);
+        }
+
+        .transition-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(139,0,0,0.9) 0%, rgba(26,15,8,1) 100%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 2s ease;
+        }
+
+        .success-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2rem;
+            color: #fff;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 101;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+            transition: opacity 1s ease;
+        }
+
+        .navigation {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .nav-btn {
+            pointer-events: all;
+            background: rgba(139, 69, 19, 0.7);
+            color: #f0e6d2;
+            border: none;
+            width: 40px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(139, 69, 19, 0.9);
+            transform: scale(1.1);
+        }
+
+        .page-number {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            color: #8b4513;
+            font-size: 0.9rem;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-2px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.1; }
+            5% { opacity: 0.3; }
+            10% { opacity: 0.1; }
+            15% { opacity: 0.5; }
+            20% { opacity: 0.1; }
+            25% { opacity: 0.2; }
+            30% { opacity: 0.1; }
+            35% { opacity: 0.4; }
+            40% { opacity: 0.1; }
+            100% { opacity: 0.1; }
+        }
+
+        @keyframes symbolShake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-1px); }
+            50% { transform: translateX(1px); }
+            75% { transform: translateX(-1px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="shadow"></div>
+    <div class="flicker"></div>
+    
+    <div class="book-container">
+        <div class="book" id="book">
+                
+                <!-- Страница 1 (Латынь) -->
+            <div class="page active" id="page1">
+                <div class="stain stain-1"></div>
+                <div class="stain stain-2"></div>
+                <div class="blood-stain" style="top: 20%; left: 20%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>Liber Umbrarum</h3>
+                        <p>Hic liber continet arcana quae non sunt pro oculis profanis. Qui legit, caveat; scientia habet pretium.</p>
+                        <p>In tenebris latent veritates quas lux numquam revelare potest. Sanguis et atramentum hoc volumen ligant.</p>
+                        <p>Verbum obscurum: <span class="moving-symbol">⚷</span> significat initium et finem. In medio veritatem invenies.</p>
+                        
+                        <div class="false-seal">
+                            <div class="false-seal-inner"></div>
+                            <div class="false-seal-center"></div>
+                        </div>
+                        
+                        <p>Circulus aeternus non frangitur nisi per sanguinem et voluntatem. Tres gyri completi portam aperiunt.</p>
+                        <p>Nocte silentio, voces antiquae susurrant. Murmura ventorum verba mortuorum portant.</p>
+                        <p>Luna plena revelat quod sol abscondit. Umbrae lunares vias secretas monstrant.</p>
+                        <p>Aqua stagnans memoriam temporis servat. In profundis, oculi vigilant.</p>
+                        <p>Veteres lapides historias nesciuntas custodiunt. Saxa loquuntur his qui audire possunt.</p>
+                        <p>Ventus orientalis mutationem affert. Folium quod cadit sortem mutat.</p>
+                        <p class="secret-text">Non solus es. Aliquis te observat.</p>
+                    </div>
+                    <div class="page-number">I</div>
+                </div>
+            </div>
+
+            <!-- Страница 2 (Китайский) -->
+            <div class="page" id="page2">
+                <div class="stain stain-3"></div>
+                <div class="blood-stain" style="top: 70%; left: 80%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>古影之書</h3>
+                        <p>此書藏有非凡之秘，非俗眼所能窺視。讀者當心，知識有其代價。</p>
+                        <p>黑暗中隱藏著光明永遠無法揭示的真理。血與墨將此卷緊密相連。</p>
+                        
+                        <div class="triangle-seal"></div>
+                        
+                        <p>古代符號 <span class="moving-symbol">卍</span> 代表永恆的循環。始於終，終於始。</p>
+                        <p>秘密文字：𐤀𐤁𐤂𐤃 𐤄𐤅𐤆𐤇 𐤈𐤉𐤊𐤋 𐤎𐤏𐤍𐤐 𐤑𐤒𐤓𐤔𐤕</p>
+                        <p>月滿之時，隱藏之門開啟。星光指引迷失之魂。</p>
+                        <p>古老樹木見證世紀流轉。其根深入遺忘之地。</p>
+                        <p>流水低語遠古秘密。河床藏有記憶之石。</p>
+                        <p>風中傳來先祖歌聲。山脈守護沉睡巨人。</p>
+                        <p>雲霧遮蓋神秘路徑。唯有純潔之心可見。</p>
+                        <p>時間如沙流逝，但某些時刻永恆凝固。</p>
+                        <p class="secret-text">他們在黑暗中等待。時機將至。</p>
+                    </div>
+                    <div class="page-number">II</div>
+                </div>
+            </div>
+
+            <!-- Страница 3 (Русский - с настоящей печатью) -->
+            <div class="page" id="page3">
+                <div class="stain stain-1"></div>
+                <div class="stain stain-2"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>Книга Теней</h3>
+                        <p>В тени древних символов скрывается путь. <span class="moving-symbol">ᛟ</span> Только чистый духом сможет пройти лабиринт забытых знаний.</p>
+                        
+                        <p>Чернила помнят прикосновения тех, кто приходил до тебя. Некоторые исчезли, другие стали частью книги.</p>
+                        
+                        <div class="ritual-circle" id="ritualCircle">
+                            <div class="ritual-path"></div>
+                            <div class="ritual-center"></div>
+                        </div>
+                        
+                        <p>Слова на этой странице не всегда были здесь. Некоторые появляются лишь тогда, когда на них смотрят достаточно долго.</p>
+                        <p>Лунный свет проникает сквозь ставни, отбрасывая причудливые тени на стены. Эти тени знают то, что скрыто от живых.</p>
+                        <p>Ветер приносит шепот из забытых времен. Он рассказывает истории о тех, кто ступал по этой земле до нас.</p>
+                        <p>Зеркала в полночь показывают не отражение, а то, что скрыто за завесой реальности.</p>
+                        <p>Старые дома хранят память о своих обитателях. Стены помнят каждый смех и каждую слезу.</p>
+                        <p>Камни на древнем кладбище несут надписи, которые можно прочитать только при свете полной луны.</p>
+                        <p>Тени двигаются, когда на них не смотрят. Они живут своей собственной жизнью в мире полумрака.</p>
+                        <p class="secret-text">Ты не первый, кто держит эту книгу. Но, возможно, последний.</p>
+                    </div>
+                    <div class="page-number">III</div>
+                </div>
+            </div>
+
+            <!-- Страница 4 (Французский) -->
+            <div class="page" id="page4">
+                <div class="stain stain-3"></div>
+                <div class="blood-stain" style="top: 40%; left: 60%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>Livre des Ombres</h3>
+                        <p>Ce livre contient des secrets qui ne sont pas pour les yeux profanes. Que celui qui lit, prenne garde; la connaissance a un prix.</p>
+                        
+                        <div class="square-seal">
+                            <div class="square-seal-inner"></div>
+                        </div>
+                        
+                        <p>Dans les ténèbres se cachent des vérités que la lumière ne peut jamais révéler. Le sang et l'encre lient ce volume.</p>
+                        <p>Le symbole ancien <span class="moving-symbol">⛧</span> représente le cycle éternel. Commence par la fin, finis par le commencement.</p>
+                        <p>La lune danse avec les étoiles, créant des motifs que seuls les initiés peuvent comprendre.</p>
+                        <p>Les arbres anciens murmurent des secrets au vent. Leurs racines plongent dans des royaumes oubliés.</p>
+                        <p>L'eau de la rivière chante des mélodies perdues. Ses profondeurs cachent des trésors inimaginables.</p>
+                        <p>Les montagnes gardent le silence des âges. Leurs sommets touchent le ciel nocturne.</p>
+                        <p>Les nuages dessinent des visions dans le ciel. Leurs formes racontent des histoires anciennes.</p>
+                        <p class="secret-text">Tu n'es pas seul. Quelqu'un te regarde.</p>
+                    </div>
+                    <div class="page-number">IV</div>
+                </div>
+            </div>
+
+            <!-- Страница 5 (Немецкий) -->
+            <div class="page" id="page5">
+                <div class="stain stain-1"></div>
+                <div class="blood-stain" style="top: 60%; left: 30%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>Buch der Schatten</h3>
+                        <p>Dieses Buch enthält Geheimnisse, die nicht für ungeweihte Augen bestimmt sind. Wer liest, sei gewarnt; Wissen hat seinen Preis.</p>
+                        
+                        <div class="false-seal">
+                            <div class="false-seal-inner"></div>
+                            <div class="false-seal-center"></div>
+                        </div>
+                        
+                        <p>Im Dunkeln verbergen sich Wahrheiten, die das Licht niemals offenbaren kann. Blut und Tinte binden diesen Band.</p>
+                        <p>Das alte Symbol <span class="moving-symbol">ᚠ</span> repräsentiert den ewigen Zyklus. Beginne mit dem Ende, beende mit dem Anfang.</p>
+                        <p>Der Mond wirft silberne Fäden über die Landschaft. In seinem Licht erwachen vergessene Geschichten.</p>
+                        <p>Alte Wälder bewahren uraltes Wissen. Ihre Blätter flüstern Geheimnisse dem Wind zu.</p>
+                        <p>Flüsse tragen die Erinnerungen der Zeit in ihren Tiefen. Steine am Ufer erzählen von vergangenen Zeiten.</p>
+                        <p>Berge stehen als stille Wächter da. Ihre Gipfel berühren die Sterne.</p>
+                        <p>Wolken malen Bilder an den Himmel. Ihre Formen offenbaren verborgene Wahrheiten.</p>
+                        <p class="secret-text">Du bist nicht allein. Jemand beobachtet dich.</p>
+                    </div>
+                    <div class="page-number">V</div>
+                </div>
+            </div>
+
+            <!-- Страница 6 (Испанский) -->
+            <div class="page" id="page6">
+                <div class="stain stain-2"></div>
+                <div class="blood-stain" style="top: 30%; left: 70%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>Libro de las Sombras</h3>
+                        <p>Este libro contiene secretos que no son para ojos profanos. Quien lea, que tenga cuidado; el conocimiento tiene un precio.</p>
+                        
+                        <div class="triangle-seal"></div>
+                        
+                        <p>En la oscuridad se esconden verdades que la luz nunca puede revelar. La sangre y la tinta unen este volumen.</p>
+                        <p>El símbolo antiguo <span class="moving-symbol">☾</span> representa el ciclo eterno. Comienza por el final, termina por el principio.</p>
+                        <p>La luna teje hilos de plata sobre la tierra. Bajo su luz, los sueños se hacen realidad.</p>
+                        <p>Los bosques antiguos guardan sabiduría ancestral. Sus hojas susurran secretos al viento.</p>
+                        <p>Los ríos cantan melodías olvidadas. En sus profundidades yacen tesoros ocultos.</p>
+                        <p>Las montañas se alzan como guardianes silenciosos. Sus cumbres besan el cielo estrellado.</p>
+                        <p>Las nubes pintan visiones en el firmamento. Sus formas revelan destinos ocultos.</p>
+                        <p class="secret-text">No estás solo. Alguien te está observando.</p>
+                    </div>
+                    <div class="page-number">VI</div>
+                </div>
+            </div>
+
+            <!-- Страница 7 (Итальянский) -->
+            <div class="page" id="page7">
+                <div class="stain stain-3"></div>
+                <div class="blood-stain" style="top: 80%; left: 40%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>Libro delle Ombre</h3>
+                        <p>Questo libro contiene segreti che non sono per occhi profani. Chi legge, stia attento; la conoscenza ha un prezzo.</p>
+                        
+                        <div class="square-seal">
+                            <div class="square-seal-inner"></div>
+                        </div>
+                        
+                        <p>Nell'oscurità si nascondono verità che la luce non può mai rivelare. Sangue e inchiostro legano questo volume.</p>
+                        <p>L'antico simbolo <span class="moving-symbol">♆</span> rappresenta il ciclo eterno. Inizia con la fine, finisci con l'inizio.</p>
+                        <p>La luna tesse fili d'argento sulla terra. Alla sua luce, i sogni prendono vita.</p>
+                        <p>Le foreste antiche custodiscono saggezza millenaria. Le loro foglie sussurrano segreti al vento.</p>
+                        <p>I fiumi cantano melodie dimenticate. Nelle loro profondità giacciono tesori nascosti.</p>
+                        <p>Le montagne si ergono come guardiani silenziosi. Le loro vette sfiorano il cielo stellato.</p>
+                        <p>Le nuvole dipingono visioni nel firmamento. Le loro forme rivelano destini nascosti.</p>
+                        <p class="secret-text">Non sei solo. Qualcuno ti sta osservando.</p>
+                    </div>
+                    <div class="page-number">VII</div>
+                </div>
+            </div>
+
+            <!-- Страница 8 (Арабский) -->
+            <div class="page" id="page8">
+                <div class="stain stain-1"></div>
+                <div class="blood-stain" style="top: 50%; left: 20%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>كتاب الظلال</h3>
+                        <p>هذا الكتاب يحتوي على أسرار ليست لأعين غير المقدسة. من يقرأ، فليحذر؛ المعرفة لها ثمن.</p>
+                        
+                        <div class="false-seal">
+                            <div class="false-seal-inner"></div>
+                            <div class="false-seal-center"></div>
+                        </div>
+                        
+                        <p>في الظلام تكمن الحقائق التي لا يمكن للضوء أن يكشفها أبدًا. الدم والحبر يربطان هذا المجلد.</p>
+                        <p>الرمز القديم <span class="moving-symbol">☥</span> يمثل الدورة الأبدية. ابدأ بالنهاية، أنهِ بالبداية.</p>
+                        <p>القمر ينسج خيوطًا فضية على الأرض. تحت ضوئه، تتحقق الأحلام.</p>
+                        <p>الغابات القدية تحفظ حكمة الأسلاف. أوراقها تهمس بالأسرار للرياح.</p>
+                        <p>الأنهار تغني ألحانًا منسية. في أعماقها تكمن كنوز مخفية.</p>
+                        <p>الجبال تقف كحراس صامتين. قممها تقبل السماء المرصعة بالنجوم.</p>
+                        <p>الغيوم ترسم رؤى في الأفق. أشكالها تكشف مصائر خفية.</p>
+                        <p class="secret-text">لست وحدك. شخص ما يراقبك.</p>
+                    </div>
+                    <div class="page-number">VIII</div>
+                </div>
+            </div>
+
+            <!-- Страница 9 (Японский) -->
+            <div class="page" id="page9">
+                <div class="stain stain-2"></div>
+                <div class="blood-stain" style="top: 25%; left: 75%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>影の書</h3>
+                        <p>この書は俗眼のためにあらざる秘密を蔵す。読む者、用心せよ。知識には代償あり。</p>
+                        
+                        <div class="triangle-seal"></div>
+                        
+                        <p>闇には光が決して明かせない真実が潜む。血と墨がこの書を結ぶ。</p>
+                        <p>古代の象徴 <span class="moving-symbol">ᛞ</span> は永遠の循環を表す。終わりから始め、始めで終われ。</p>
+                        <p>月が地上に銀の糸を紡ぐ。その光の中で、夢は現実となる。</p>
+                        <p>古代の森は先祖の知恵を守る。その葉は風に秘密を囁く。</p>
+                        <p>川は忘れられた旋律を歌う。その深淵には隠された宝物が横たわる。</p>
+                        <p>山々は静かな守護者としてそびえる。その頂は星空に触れる。</p>
+                        <p>雲は天空に幻影を描く。その形は隠された運命を明かす。</p>
+                        <p class="secret-text">あなたは一人ではない。誰かがあなたを見ている。</p>
+                    </div>
+                    <div class="page-number">IX</div>
+                </div>
+            </div>
+
+            <!-- Страница 10 (Санскрит) -->
+            <div class="page" id="page10">
+                <div class="stain stain-3"></div>
+                <div class="blood-stain" style="top: 65%; left: 35%;"></div>
+                
+                <div class="page-content">
+                    <div class="ancient-text">
+                        <h3>छाया पुस्तक</h3>
+                        <p>इस पुस्तक में रहस्य हैं जो अपवित्र आँखों के लिए नहीं हैं। जो पढ़े, सावधान रहे; ज्ञान की कीमत होती है।</p>
+                        
+                        <div class="square-seal">
+                            <div class="square-seal-inner"></div>
+                        </div>
+                        
+                        <p>अंधकार में सत्य छिपे हैं जिन्हें प्रकाश कभी प्रकट नहीं कर सकता। रक्त और स्याही इस ग्रंथ को बांधते हैं।</p>
+                        <p>प्राचीन प्रतीक <span class="moving-symbol">ॐ</span> शाश्वत चक्र का प्रतिनिधित्व करता है। अंत से प्रारंभ करो, प्रारंभ से समाप्त करो।</p>
+                        <p>चंद्रमा पृथ्वी पर रजत धागे बुनता है। उसकी रोशनी में, सपने सच होते हैं।</p>
+                        <p>प्राचीन वन पूर्वजों का ज्ञान संजोते हैं। उनके पत्ते हवा को रहस्य बताते हैं।</p>
+                        <p>नदियाँ भूली हुई धुनें गाती हैं। उनकी गहराई में छिपे खजाने पड़े हैं।</p>
+                        <p>पहाड़ मूक रक्षकों के रूप में खड़े हैं। उनकी चोटियाँ तारों भरे आकाश को छूती हैं।</p>
+                        <p>बादल आकाश में दर्शन चित्रित करते हैं। उनके आकार छिपे हुए भाग्य प्रकट करते हैं।</p>
+                        <p class="secret-text">तुम अकेले नहीं हो। कोई तुम्हें देख रहा है।</p>
+                    </div>
+                    <div class="page-number">X</div>
+                </div>
+            </div>
+        
+        <div class="navigation">
+            <button class="nav-btn" id="prevBtn">‹</button>
+            <button class="nav-btn" id="nextBtn">›</button>
+        </div>
+    </div>
+
+    <div class="transition-effect" id="transitionEffect"></div>
+    <div class="success-message" id="successMessage">Печать сломана. Путь открыт.</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const book = document.getElementById('book');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const secretTexts = document.querySelectorAll('.secret-text');
+            const ritualCircle = document.getElementById('ritualCircle');
+            const transitionEffect = document.getElementById('transitionEffect');
+            const successMessage = document.getElementById('successMessage');
+            
+            let currentPage = 1;
+            const totalPages = 10;
+            let isDrawing = false;
+            let circlesCompleted = 0;
+            let lastAngle = null;
+            let totalAngle = 0;
+            let userPath = [];
+            
+            // Навигация по страницам
+            function updateNavigation() {
+                prevBtn.style.display = currentPage > 1 ? 'block' : 'none';
+                nextBtn.style.display = currentPage < totalPages ? 'block' : 'none';
+                
+                // Показываем активную страницу
+                for (let i = 1; i <= totalPages; i++) {
+                    const page = document.getElementById(`page${i}`);
+                    if (i === currentPage) {
+                        page.classList.add('active');
+                    } else {
+                        page.classList.remove('active');
+                    }
+                }
+            }
+            
+            prevBtn.addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updateNavigation();
+                }
+            });
+            
+            nextBtn.addEventListener('click', function() {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updateNavigation();
+                }
+            });
+            
+            // Обработчик выделения текста
+            document.addEventListener('mouseup', function() {
+                const selection = window.getSelection();
+                const selectedText = selection.toString().trim();
+                
+                if (selectedText.length > 0) {
+                    createWhisper();
+                    
+                    if (navigator.vibrate) {
+                        navigator.vibrate(50);
+                    }
+                    
+                    selection.removeAllRanges();
+                }
+            });
+            
+            // Создание шепота
+            function createWhisper() {
+                const whispers = [
+                    "не читай...",
+                    "они слышат...",
+                    "чернила живые...",
+                    "отпусти...",
+                    "не трогай слова...",
+                    "поздно...",
+                    "они идут...",
+                    "за тобой..."
+                ];
+                
+                const whisper = document.createElement('div');
+                whisper.className = 'whisper-text';
+                whisper.textContent = whispers[Math.floor(Math.random() * whispers.length)];
+                whisper.style.left = (Math.random() * 500 + 50) + 'px';
+                whisper.style.top = (Math.random() * 300 + 50) + 'px';
+                document.body.appendChild(whisper);
+                
+                whisper.style.opacity = '1';
+                
+                setTimeout(() => {
+                    whisper.style.opacity = '0';
+                    setTimeout(() => {
+                        if (document.body.contains(whisper)) {
+                            document.body.removeChild(whisper);
+                        }
+                    }, 500);
+                }, 2000);
+            }
+            
+            // Обработчики рисования по ритуальному кругу (только на странице 3)
+            ritualCircle.addEventListener('mousedown', startDrawing);
+            ritualCircle.addEventListener('mousemove', draw);
+            ritualCircle.addEventListener('mouseup', stopDrawing);
+            ritualCircle.addEventListener('mouseleave', stopDrawing);
+            
+            function startDrawing(e) {
+                if (currentPage !== 3) return;
+                
+                isDrawing = true;
+                userPath = [];
+                circlesCompleted = 0;
+                lastAngle = null;
+                totalAngle = 0;
+                
+                const rect = ritualCircle.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                userPath.push({ x, y });
+                
+                createCursorTrail(x, y);
+            }
+            
+            function draw(e) {
+                if (!isDrawing || currentPage !== 3) return;
+                
+                const rect = ritualCircle.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                
+                if (distanceFromCenter > 40 && distanceFromCenter < 80) {
+                    userPath.push({ x, y });
+                    
+                    const currentAngle = Math.atan2(y - centerY, x - centerX);
+                    
+                    if (lastAngle !== null) {
+                        let angleDiff = currentAngle - lastAngle;
+                        
+                        if (angleDiff > Math.PI) {
+                            angleDiff -= 2 * Math.PI;
+                        } else if (angleDiff < -Math.PI) {
+                            angleDiff += 2 * Math.PI;
+                        }
+                        
+                        totalAngle += angleDiff;
+                        
+                        const newCirclesCompleted = Math.floor(Math.abs(totalAngle) / (2 * Math.PI));
+                        if (newCirclesCompleted > circlesCompleted) {
+                            circlesCompleted = newCirclesCompleted;
+                            
+                            if (navigator.vibrate) {
+                                navigator.vibrate(100);
+                            }
+                        }
+                    }
+                    
+                    lastAngle = currentAngle;
+                    
+                    createCursorTrail(x, y);
+                    
+                    if (circlesCompleted >= 3) {
+                        completeRitual();
+                    }
+                } else {
+                    stopDrawing();
+                }
+            }
+            
+            function stopDrawing() {
+                isDrawing = false;
+            }
+            
+            // Создание следа курсора
+            function createCursorTrail(x, y) {
+                const trail = document.createElement('div');
+                trail.className = 'cursor-trail';
+                trail.style.left = x + 'px';
+                trail.style.top = y + 'px';
+                ritualCircle.appendChild(trail);
+                
+                setTimeout(() => {
+                    trail.style.opacity = '0';
+                    setTimeout(() => {
+                        if (ritualCircle.contains(trail)) {
+                            ritualCircle.removeChild(trail);
+                        }
+                    }, 1000);
+                }, 500);
+            }
+            
+            // Завершение ритуала
+            function completeRitual() {
+                isDrawing = false;
+                
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200, 100, 300]);
+                }
+                
+                setTimeout(() => {
+                    activateTransition();
+                }, 1000);
+            }
+            
+            // Активация перехода
+            function activateTransition() {
+                transitionEffect.style.opacity = '1';
+                successMessage.style.opacity = '1';
+                
+                document.querySelector('.book-container').style.opacity = '0';
+                
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            }
+            
+            // Постепенное открытие секретного текста
+            let revealCounter = 0;
+            const revealInterval = setInterval(() => {
+                if (revealCounter < secretTexts.length) {
+                    secretTexts[revealCounter].classList.add('revealed');
+                    revealCounter++;
+                    
+                    const symbols = document.querySelectorAll('.moving-symbol');
+                    symbols.forEach(symbol => {
+                        symbol.style.animation = 'symbolShake 0.5s ease-in-out';
+                        setTimeout(() => {
+                            symbol.style.animation = 'float 3s ease-in-out infinite';
+                        }, 500);
+                    });
+                } else {
+                    clearInterval(revealInterval);
+                }
+            }, 5000);
+            
+            // Случайные эффекты для атмосферы
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const symbols = document.querySelectorAll('.moving-symbol');
+                    if (symbols.length > 0) {
+                        const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+                        randomSymbol.style.animation = 'symbolShake 0.5s ease-in-out';
+                        setTimeout(() => {
+                            randomSymbol.style.animation = 'float 3s ease-in-out infinite';
+                        }, 500);
+                    }
+                }
+                
+                if (Math.random() > 0.9) {
+                    createWhisper();
+                }
+            }, 8000);
+            
+            // Эффект при наведении на символы
+            const symbols = document.querySelectorAll('.moving-symbol');
+            symbols.forEach(symbol => {
+                symbol.addEventListener('mouseenter', function() {
+                    this.style.animation = 'symbolShake 0.3s infinite';
+                });
+                
+                symbol.addEventListener('mouseleave', function() {
+                    this.style.animation = 'float 3s ease-in-out infinite';
+                });
+            });
+            
+            // Инициализация
+            updateNavigation();
+        });
+    </script>
+</body>
+</html>
