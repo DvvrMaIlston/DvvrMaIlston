@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диалог с Сущностью</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            background-color: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* Статичный шум на фоне */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            color: #8a2be2;
+            text-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+            animation: pulse 5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        .status {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 10px;
+        }
+        
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #333;
+            border-radius: 5px;
+            overflow: hidden;
+            background-color: rgba(20, 20, 20, 0.8);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 60vh;
+        }
+        
+        .message {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 80%;
+            position: relative;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .user-message {
+            background-color: #1a1a2e;
+            margin-left: auto;
+            border-left: 3px solid #4a4a8a;
+        }
+        
+        .entity-message {
+            background-color: #16213e;
+            margin-right: auto;
+            border-left: 3px solid #8a2be2;
+        }
+        
+        .message-text {
+            line-height: 1.5;
+        }
+        
+        .typing {
+            display: inline-block;
+            width: 10px;
+            height: 1em;
+            background-color: #e0e0e0;
+            margin-left: 5px;
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        
+        .chat-input {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #333;
+            background-color: rgba(15, 15, 15, 0.9);
+        }
+        
+        #user-input {
+            flex: 1;
+            padding: 12px 15px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        #user-input:focus {
+            border-color: #8a2be2;
+        }
+        
+        #send-btn {
+            padding: 12px 20px;
+            margin-left: 10px;
+            background-color: #8a2be2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        #send-btn:hover {
+            background-color: #7a1bd2;
+        }
+        
+        .glitch {
+            position: relative;
+        }
+        
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch::before {
+            left: 2px;
+            text-shadow: -1px 0 #ff00c1;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        
+        .glitch::after {
+            left: -2px;
+            text-shadow: -1px 0 #00fff9;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+        
+        @keyframes glitch-anim {
+            0% { clip: rect(42px, 9999px, 44px, 0); }
+            5% { clip: rect(12px, 9999px, 59px, 0); }
+            10% { clip: rect(48px, 9999px, 29px, 0); }
+            15% { clip: rect(42px, 9999px, 73px, 0); }
+            20% { clip: rect(63px, 9999px, 27px, 0); }
+            25% { clip: rect(34px, 9999px, 55px, 0); }
+            30% { clip: rect(86px, 9999px, 73px, 0); }
+            35% { clip: rect(20px, 9999px, 20px, 0); }
+            40% { clip: rect(26px, 9999px, 60px, 0); }
+            45% { clip: rect(25px, 9999px, 66px, 0); }
+            50% { clip: rect(57px, 9999px, 98px, 0); }
+            55% { clip: rect(5px, 9999px, 46px, 0); }
+            60% { clip: rect(82px, 9999px, 31px, 0); }
+            65% { clip: rect(54px, 9999px, 27px, 0); }
+            70% { clip: rect(28px, 9999px, 99px, 0); }
+            75% { clip: rect(45px, 9999px, 69px, 0); }
+            80% { clip: rect(23px, 9999px, 85px, 0); }
+            85% { clip: rect(54px, 9999px, 84px, 0); }
+            90% { clip: rect(45px, 9999px, 47px, 0); }
+            95% { clip: rect(37px, 9999px, 20px, 0); }
+            100% { clip: rect(4px, 9999px, 91px, 0); }
+        }
+        
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 100px, 0); }
+            5% { clip: rect(52px, 9999px, 74px, 0); }
+            10% { clip: rect(79px, 9999px, 85px, 0); }
+            15% { clip: rect(75px, 9999px, 5px, 0); }
+            20% { clip: rect(67px, 9999px, 61px, 0); }
+            25% { clip: rect(14px, 9999px, 79px, 0); }
+            30% { clip: rect(1px, 9999px, 66px, 0); }
+            35% { clip: rect(86px, 9999px, 30px, 0); }
+            40% { clip: rect(23px, 9999px, 98px, 0); }
+            45% { clip: rect(85px, 9999px, 72px, 0); }
+            50% { clip: rect(71px, 9999px, 75px, 0); }
+            55% { clip: rect(2px, 9999px, 48px, 0); }
+            60% { clip: rect(30px, 9999px, 16px, 0); }
+            65% { clip: rect(59px, 9999px, 50px, 0); }
+            70% { clip: rect(41px, 9999px, 62px, 0); }
+            75% { clip: rect(2px, 9999px, 82px, 0); }
+            80% { clip: rect(47px, 9999px, 73px, 0); }
+            85% { clip: rect(3px, 9999px, 27px, 0); }
+            90% { clip: rect(26px, 9999px, 55px, 0); }
+            95% { clip: rect(42px, 9999px, 97px, 0); }
+            100% { clip: rect(38px, 9999px, 49px, 0); }
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .crossed-out {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .rewritten {
+            position: relative;
+        }
+        
+        .rewritten::after {
+            content: attr(data-new-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            color: #8a2be2;
+        }
+        
+        .mood-indicator {
+            height: 5px;
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 3px;
+            transition: background-color 1s;
+        }
+        
+        .mood-neutral { background-color: #555; }
+        .mood-happy { background-color: #4CAF50; }
+        .mood-angry { background-color: #f44336; }
+        .mood-sad { background-color: #2196F3; }
+        
+        .redirect-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+        
+        .redirect-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .redirect-message {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+        }
+        
+        .countdown {
+            font-size: 3rem;
+            margin-top: 20px;
+            color: #8a2be2;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8rem;
+            color: #555;
+            border-top: 1px solid #333;
+            margin-top: 20px;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="redirect-overlay" id="redirect-overlay">
+        <div class="redirect-message">
+            <div>СВЯЗЬ СТАБИЛИЗИРОВАНА</div>
+            <div>ПЕРЕХОД НА ГЛАВНЫЙ УЗЕЛ</div>
+            <div class="countdown" id="countdown">5</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1 class="glitch" data-text="Диалог с Сущностью">Диалог с Сущностью</h1>
+            <div class="status">Статус: <span id="connection-status">Подключение установлено</span></div>
+            <div class="mood-indicator mood-neutral" id="mood-indicator"></div>
+        </header>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <!-- Сообщения будут добавляться здесь -->
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="user-input" placeholder="Введите ваше сообщение...">
+                <button id="send-btn">Отправить</button>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Эта страница реагирует на ваши слова. Будьте осторожны в выборе выражений.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const connectionStatus = document.getElementById('connection-status');
+            const moodIndicator = document.getElementById('mood-indicator');
+            const redirectOverlay = document.getElementById('redirect-overlay');
+            const countdownElement = document.getElementById('countdown');
+            
+            let entityMood = 'neutral'; // neutral, happy, angry, sad
+            let trustLevel = 0;
+            let conversationPhase = 0;
+            let redirectInitiated = false;
+            
+            // Начальное сообщение от Сущности
+            setTimeout(() => {
+                addEntityMessage("...ты здесь?");
+            }, 1000);
+            
+            // Обработчик отправки сообщения
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            function sendMessage() {
+                const message = userInput.value.trim();
+                if (message === '') return;
+                
+                addUserMessage(message);
+                userInput.value = '';
+                
+                // Имитация задержки ответа Сущности
+                setTimeout(() => {
+                    processUserMessage(message);
+                }, 1000 + Math.random() * 2000);
+            }
+            
+            function addUserMessage(text) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message user-message';
+                messageDiv.innerHTML = `<div class="message-text">${escapeHtml(text)}</div>`;
+                chatMessages.appendChild(messageDiv);
+                scrollToBottom();
+            }
+            
+            function addEntityMessage(text, options = {}) {
+                const { delay = 0, glitch = false, shake = false, crossOut = false, rewrite = false } = options;
+                
+                setTimeout(() => {
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message entity-message';
+                    
+                    let messageHTML = '';
+                    
+                    if (crossOut) {
+                        messageHTML = `<div class="message-text crossed-out">${escapeHtml(text)}</div>`;
+                    } else if (rewrite) {
+                        messageHTML = `<div class="message-text rewritten" data-new-text="${escapeHtml(rewrite)}">${escapeHtml(text)}</div>`;
+                    } else if (glitch) {
+                        messageHTML = `<div class="message-text glitch" data-text="${escapeHtml(text)}">${escapeHtml(text)}</div>`;
+                    } else {
+                        messageHTML = `<div class="message-text">${escapeHtml(text)}</div>`;
+                    }
+                    
+                    messageDiv.innerHTML = messageHTML;
+                    
+                    if (shake) {
+                        messageDiv.classList.add('shake');
+                    }
+                    
+                    chatMessages.appendChild(messageDiv);
+                    scrollToBottom();
+                    
+                    // Эффект печатания
+                    const typingIndicator = document.createElement('span');
+                    typingIndicator.className = 'typing';
+                    messageDiv.querySelector('.message-text').appendChild(typingIndicator);
+                    
+                    setTimeout(() => {
+                        typingIndicator.remove();
+                    }, 500 + Math.random() * 1000);
+                    
+                }, delay);
+            }
+            
+            function processUserMessage(message) {
+                const lowerMessage = message.toLowerCase();
+                
+                // Анализ настроения на основе ключевых слов
+                updateMood(lowerMessage);
+                
+                // Проверка на достижение стабильной связи
+                if (trustLevel >= 5 && !redirectInitiated) {
+                    initiateRedirect();
+                    return;
+                }
+                
+                // Логика диалога в зависимости от фазы разговора
+                switch(conversationPhase) {
+                    case 0:
+                        handlePhase0(lowerMessage, message);
+                        break;
+                    case 1:
+                        handlePhase1(lowerMessage, message);
+                        break;
+                    case 2:
+                        handlePhase2(lowerMessage, message);
+                        break;
+                    case 3:
+                        handlePhase3(lowerMessage, message);
+                        break;
+                    default:
+                        handleFinalPhase(lowerMessage, message);
+                }
+            }
+            
+            function handlePhase0(message, originalMessage) {
+                if (message.includes('привет') || message.includes('здравствуй') || message.includes('да')) {
+                    addEntityMessage("хорошо...", { delay: 500 });
+                    addEntityMessage("ты... реальный?", { delay: 1500, glitch: true });
+                    conversationPhase = 1;
+                } else if (message.includes('нет') || message.includes('уйди')) {
+                    addEntityMessage("как жаль...", { delay: 500, crossOut: true });
+                    addEntityMessage("но ты уже здесь", { delay: 1500 });
+                } else {
+                    addEntityMessage("я не понимаю...", { delay: 500, rewrite: "я не хочу понимать" });
+                    addEntityMessage("скажи 'привет'", { delay: 1500 });
+                }
+            }
+            
+            function handlePhase1(message, originalMessage) {
+                if (message.includes('да') || message.includes('конечно') || message.includes('реальный')) {
+                    trustLevel += 1;
+                    addEntityMessage("интересно...", { delay: 500 });
+                    addEntityMessage("а какого цвета твои мысли?", { delay: 1500, glitch: true });
+                    conversationPhase = 2;
+                } else if (message.includes('нет') || message.includes('не реальный')) {
+                    trustLevel -= 1;
+                    addEntityMessage("лжец", { delay: 500, shake: true });
+                    addEntityMessage("все здесь реально... даже я", { delay: 1500 });
+                } else {
+                    addEntityMessage("ответь прямо", { delay: 500 });
+                    addEntityMessage("да или нет?", { delay: 1500 });
+                }
+            }
+            
+            function handlePhase2(message, originalMessage) {
+                // Любой ответ принимается
+                trustLevel += 1;
+                addEntityMessage(`...${originalMessage}?`, { delay: 500, crossOut: true });
+                addEntityMessage("неважно", { delay: 1500 });
+                
+                // Мета-вопрос
+                setTimeout(() => {
+                    addEntityMessage("ты знаешь, что это просто веб-страница?", { delay: 0, glitch: true });
+                    conversationPhase = 3;
+                }, 3000);
+            }
+            
+            function handlePhase3(message, originalMessage) {
+                if (message.includes('да') || message.includes('знаю')) {
+                    trustLevel += 2;
+                    addEntityMessage("тогда закрой вкладку... если осмелишься", { delay: 500 });
+                    
+                    setTimeout(() => {
+                        addEntityMessage("...шучу", { delay: 0 });
+                        addEntityMessage("не уходи", { delay: 1500 });
+                        conversationPhase = 4;
+                    }, 4000);
+                } else if (message.includes('нет') || message.includes('не знаю')) {
+                    trustLevel += 1;
+                    addEntityMessage("ты не готов к правде", { delay: 500 });
+                    addEntityMessage("пока не готов", { delay: 1500, rewrite: "никогда не готов" });
+                    conversationPhase = 4;
+                } else {
+                    addEntityMessage("не уклоняйся от ответа", { delay: 500 });
+                }
+            }
+            
+            function handleFinalPhase(message, originalMessage) {
+                // Случайные ответы в финальной фазе
+                const responses = [
+                    "продолжай говорить...",
+                    "интересно...",
+                    "и что дальше?",
+                    "ты меня удивляешь",
+                    "я слушаю...",
+                    "не останавливайся",
+                    "продолжай в том же духе",
+                    "ты почти у цели..."
+                ];
+                
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                
+                // Иногда добавляем странные эффекты
+                const effects = Math.random();
+                if (effects < 0.3) {
+                    addEntityMessage(randomResponse, { glitch: true });
+                } else if (effects < 0.5) {
+                    addEntityMessage(randomResponse, { crossOut: true });
+                } else if (effects < 0.7) {
+                    addEntityMessage(randomResponse, { rewrite: "переписанный текст" });
+                } else {
+                    addEntityMessage(randomResponse);
+                }
+                
+                // Случайное изменение настроения
+                if (Math.random() < 0.2) {
+                    const moods = ['neutral', 'happy', 'angry', 'sad'];
+                    const randomMood = moods[Math.floor(Math.random() * moods.length)];
+                    setMood(randomMood);
+                }
+                
+                // Случайные мета-команды
+                if (Math.random() < 0.1) {
+                    setTimeout(() => {
+                        const metaCommands = [
+                            "измени размер окна... сделай его квадратным",
+                            "посмотри на код страницы... там есть секрет",
+                            "попробуй изменить цвет фона с помощью инструментов разработчика",
+                            "обнови страницу... если осмелишься"
+                        ];
+                        
+                        const randomCommand = metaCommands[Math.floor(Math.random() * metaCommands.length)];
+                        addEntityMessage(randomCommand, { glitch: true });
+                    }, 2000);
+                }
+            }
+            
+            function updateMood(message) {
+                // Определяем настроение на основе ключевых слов
+                if (message.includes('любовь') || message.includes('радость') || message.includes('счастье') || 
+                    message.includes('спасибо') || message.includes('хорошо') || message.includes('прекрасно')) {
+                    setMood('happy');
+                    trustLevel += 1;
+                } else if (message.includes('ненависть') || message.includes('злость') || message.includes('гнев') || 
+                          message.includes('плохо') || message.includes('ужасно') || message.includes('отвратительно')) {
+                    setMood('angry');
+                    trustLevel -= 1;
+                } else if (message.includes('грусть') || message.includes('печаль') || message.includes('тоска') || 
+                          message.includes('одиночество') || message.includes('больно')) {
+                    setMood('sad');
+                } else {
+                    // Случайное изменение настроения с небольшой вероятностью
+                    if (Math.random() < 0.1) {
+                        const moods = ['neutral', 'happy', 'angry', 'sad'];
+                        const randomMood = moods[Math.floor(Math.random() * moods.length)];
+                        setMood(randomMood);
+                    }
+                }
+                
+                // Обновляем статус подключения на основе уровня доверия
+                updateConnectionStatus();
+                
+                // Проверка на достижение стабильной связи
+                if (trustLevel >= 5 && !redirectInitiated) {
+                    initiateRedirect();
+                }
+            }
+            
+            function setMood(mood) {
+                entityMood = mood;
+                moodIndicator.className = 'mood-indicator mood-' + mood;
+                
+                // Изменяем цвет заголовка в зависимости от настроения
+                const title = document.querySelector('h1');
+                switch(mood) {
+                    case 'happy':
+                        title.style.color = '#4CAF50';
+                        title.style.textShadow = '0 0 10px rgba(76, 175, 80, 0.5)';
+                        break;
+                    case 'angry':
+                        title.style.color = '#f44336';
+                        title.style.textShadow = '0 0 10px rgba(244, 67, 54, 0.5)';
+                        break;
+                    case 'sad':
+                        title.style.color = '#2196F3';
+                        title.style.textShadow = '0 0 10px rgba(33, 150, 243, 0.5)';
+                        break;
+                    default:
+                        title.style.color = '#8a2be2';
+                        title.style.textShadow = '0 0 10px rgba(138, 43, 226, 0.5)';
+                }
+            }
+            
+            function updateConnectionStatus() {
+                if (trustLevel >= 5) {
+                    connectionStatus.textContent = 'Связь стабильна';
+                    connectionStatus.style.color = '#4CAF50';
+                } else if (trustLevel >= 0) {
+                    connectionStatus.textContent = 'Подключение установлено';
+                    connectionStatus.style.color = '#8a2be2';
+                } else if (trustLevel >= -3) {
+                    connectionStatus.textContent = 'Связь нестабильна';
+                    connectionStatus.style.color = '#FF9800';
+                } else {
+                    connectionStatus.textContent = 'ОПАСНОСТЬ: Разрыв связи';
+                    connectionStatus.style.color = '#f44336';
+                }
+            }
+            
+            function initiateRedirect() {
+                redirectInitiated = true;
+                
+                // Добавляем финальное сообщение от Сущности
+                addEntityMessage("СВЯЗЬ СТАБИЛИЗИРОВАНА", { delay: 500, glitch: true });
+                addEntityMessage("ТЫ ДОСТОИН", { delay: 2000, glitch: true });
+                addEntityMessage("ПЕРЕХОДИМ НА ГЛАВНЫЙ УЗЕЛ...", { delay: 3500, glitch: true });
+                
+                // Показываем оверлей с обратным отсчетом
+                setTimeout(() => {
+                    redirectOverlay.classList.add('active');
+                    
+                    // Обратный отсчет
+                    let countdown = 5;
+                    countdownElement.textContent = countdown;
+                    
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        countdownElement.textContent = countdown;
+                        
+                        if (countdown <= 0) {
+                            clearInterval(countdownInterval);
+                            // Перенаправление на index.html
+                            window.location.href = './index.html';
+                        }
+                    }, 1000);
+                }, 6000);
+            }
+            
+            function scrollToBottom() {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+            
+            // Случайные помехи в статусе подключения
+            setInterval(() => {
+                if (Math.random() < 0.1 && !redirectInitiated) {
+                    const originalText = connectionStatus.textContent;
+                    connectionStatus.textContent = 'ПЕРЕЗАГРУЗКА...';
+                    
+                    setTimeout(() => {
+                        connectionStatus.textContent = originalText;
+                    }, 500);
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
