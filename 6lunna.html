@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Orbitron:wght@400;500&family=Special+Elite&display=swap" rel="stylesheet">
+    <title>Головоломка с символами</title>
     <style>
         * {
             cursor: none;
@@ -421,6 +422,55 @@
         .symbol {
             animation: symbolAppear 0.5s ease forwards;
         }
+
+        /* Инструкция по решению */
+        .solution-guide {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(20, 20, 30, 0.7);
+            border-radius: 10px;
+            border: 1px solid rgba(100, 100, 255, 0.5);
+            max-width: 800px;
+        }
+
+        .solution-guide h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffff;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .solution-guide p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .symbol-explanation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .symbol-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+        }
+
+        .symbol-item .symbol {
+            width: 60px;
+            height: 60px;
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .symbol-item .label {
+            font-size: 0.8em;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -465,6 +515,11 @@
         </div>
     </div>
 
+    
+        
+
+    </div>
+
     <script>
         // Кастомный курсор
         const cursor = document.querySelector('.cursor');
@@ -478,7 +533,7 @@
         });
 
         // Данные головоломки
-        const symbols = ['☽', '☾', '◐', '◑', '●', '○', '◒', '◓'];
+        const symbols = ['○', '◐', '●', '◑', '◒', '◓'];
         const correctOrder = ['○', '◐', '●', '◑', '○', '◒', '●', '◓'];
         
         let draggedSymbol = null;
@@ -489,15 +544,27 @@
             const symbolsContainer = document.getElementById('symbolsContainer');
             const slotsContainer = document.getElementById('slotsContainer');
             
+            // Очищаем контейнеры
+            symbolsContainer.innerHTML = '';
+            slotsContainer.innerHTML = '';
+            
+            // Создаем символы (дублируем для заполнения всех слотов)
+            const symbolsToUse = [];
+            for (let i = 0; i < correctOrder.length; i++) {
+                symbolsToUse.push(correctOrder[i]);
+            }
+            
             // Перемешиваем символы
-            const shuffledSymbols = [...symbols].sort(() => Math.random() - 0.5);
+            const shuffledSymbols = [...symbolsToUse].sort(() => Math.random() - 0.5);
             
             // Создаем символы
-            shuffledSymbols.forEach(symbol => {
+            shuffledSymbols.forEach((symbol, index) => {
                 const symbolElement = document.createElement('div');
                 symbolElement.className = 'symbol';
                 symbolElement.textContent = symbol;
                 symbolElement.draggable = true;
+                symbolElement.dataset.symbol = symbol;
+                symbolElement.dataset.id = index;
                 
                 symbolElement.addEventListener('dragstart', handleDragStart);
                 symbolElement.addEventListener('dragend', handleDragEnd);
@@ -506,7 +573,7 @@
             });
             
             // Создаем слоты для символов
-            for (let i = 0; i < symbols.length; i++) {
+            for (let i = 0; i < correctOrder.length; i++) {
                 const slot = document.createElement('div');
                 slot.className = 'slot';
                 slot.dataset.index = i;
@@ -528,7 +595,7 @@
             draggedSymbol = this;
             this.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.innerHTML);
+            e.dataTransfer.setData('text/plain', this.dataset.id);
         }
         
         function handleDragEnd() {
@@ -544,6 +611,7 @@
         }
         
         function handleDragEnter(e) {
+            e.preventDefault();
             this.classList.add('highlight');
         }
         
@@ -552,14 +620,13 @@
         }
         
         function handleDrop(e) {
-            e.stopPropagation();
             e.preventDefault();
             
             if (draggedSymbol) {
                 // Если слот уже занят, возвращаем символ на место
                 if (this.firstChild) {
                     const existingSymbol = this.firstChild;
-                    draggedSymbol.parentNode.appendChild(existingSymbol);
+                    symbolsContainer.appendChild(existingSymbol);
                 }
                 
                 // Помещаем перетаскиваемый символ в слот
@@ -595,11 +662,11 @@
                 }
             });
             
-            progress = (filledSlots / symbols.length) * 100;
+            progress = (filledSlots / correctOrder.length) * 100;
             document.getElementById('progressBar').style.width = `${progress}%`;
             
             // Активируем кнопку проверки, если все слоты заполнены
-            document.getElementById('checkButton').disabled = filledSlots !== symbols.length;
+            document.getElementById('checkButton').disabled = filledSlots !== correctOrder.length;
         }
         
         // Проверка последовательности
@@ -619,12 +686,8 @@
                 
                 // Анимация успеха
                 document.querySelectorAll('.symbol').forEach(symbol => {
-                    symbol.style.animation = 'none';
-                    setTimeout(() => {
-                        symbol.style.animation = 'symbolAppear 0.5s ease forwards';
-                        symbol.style.borderColor = '#33ff99';
-                        symbol.style.boxShadow = '0 0 15px rgba(51, 255, 153, 0.7)';
-                    }, 100);
+                    symbol.style.borderColor = '#33ff99';
+                    symbol.style.boxShadow = '0 0 15px rgba(51, 255, 153, 0.7)';
                 });
                 
                 // Перенаправление на другую страницу через 2 секунды
@@ -662,4 +725,3 @@
     </script>
 </body>
 </html>
-
